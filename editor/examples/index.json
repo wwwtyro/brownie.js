@@ -1,0 +1,7 @@
+{
+    "default": "tree",
+    "examples": [
+        "tree",
+        "sphere"
+    ]
+}

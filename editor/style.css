@@ -1,0 +1,82 @@
+
+body {
+    margin: 0px;
+}
+
+#render-canvas {
+    position: absolute;
+    left: 50%;
+    right: 0%;
+    top: 0%;
+    bottom: 0%;
+}
+
+#editor-container {
+    position: absolute;
+    left: 0%;
+    right: 50%;
+    top: 0%;
+    bottom: 0%;
+    border-radius: 0px;
+}
+
+#menu {
+    margin: 0px;
+    padding: 0px;
+    border-radius: 0px;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;    
+}
+
+#editor {
+    margin: 0px;
+    position: fixed;
+    left: 0%;
+    right: 50%;
+    bottom: 0%;
+    border-radius: 0px;
+    border: 0px;
+}
+
+.pseudolink {
+    color: #428bca;
+    cursor: hand;
+    cursor: pointer;
+}
+
+#cover {
+    background-color: #ffffff;
+    position: absolute;
+    top: 0%;
+    left: 0%;
+    width: 100%;
+    height: 100%;
+}
+
+.btn:focus {
+    outline: none;
+}
+
+.btn-link:focus {
+    outline: none;
+}
+
+.btn-link:hover {
+    text-decoration: none;
+}
+
+#render-canvas:active {
+    cursor: default;
+}
+
+#export-modal-body {
+    font-family: "Lucida Console", Monaco, monospace;
+    width: 100%;
+    resize: none;
+}
