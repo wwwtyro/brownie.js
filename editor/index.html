@@ -26,8 +26,23 @@
                                 </a>
                                 <ul class="dropdown-menu" role="menu">
                                     <li>
+                                        <button type="button" class="btn btn-link" id="open-button">
+                                            Open
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-link" id="save-button">
+                                            Save
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="btn btn-link" data-toggle="modal" data-target="#saveas-modal">
+                                            Save as...
+                                        </button>
+                                    </li>
+                                    <li>
                                         <button type="button" class="btn btn-link" data-toggle="modal" data-target="#examples-modal">
-                                            Examples
+                                            Examples...
                                         </button>
                                     </li>
                                 </ul>
@@ -37,9 +52,11 @@
                                     Model <span class="caret"></span>
                                 </a>
                                 <ul class="dropdown-menu" role="menu">
-                                    <li><button type="button" class="btn btn-link" id="clear-button">Clear</button>
+                                    <li>
+                                        <button type="button" class="btn btn-link" id="clear-button">Clear</button>
                                     </li>
-                                    <li><button type="button" class="btn btn-link" id="export-button">Export</button>
+                                    <li>
+                                        <button type="button" class="btn btn-link" id="export-button">Export</button>
                                     </li>
                                 </ul>
                             </li>
@@ -48,13 +65,24 @@
                                     View <span class="caret"></span>
                                 </a>
                                 <ul class="dropdown-menu" role="menu">
-                                    <li><button type="button" class="btn btn-link" id="center-button">Center</button></li>
-                                    <li><a><input type="checkbox" checked id="spin-checkbox"> Spin</a></li>
+                                    <li>
+                                        <button type="button" class="btn btn-link" id="center-button">Center</button>
+                                    </li>
+                                    <li>
+                                        <a>
+                                            <input type="checkbox" checked id="spin-checkbox">Spin
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                             <form class="navbar-form navbar-left">
                                 <button type="button" class="btn btn-primary" id="run-button">Run</button>
                             </form>
+                        </ul>
+                        <ul class="nav navbar-nav navbar-right">
+                            <li>
+                                <p class="navbar-text" id="current-program-name"></p>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -62,7 +90,6 @@
             <pre id="editor"></pre>
         </div>
         <canvas id="render-canvas"></canvas>
-        <div id="cover"></div>
 
         <div class="modal fade" id="examples-modal">
             <div class="modal-dialog">
@@ -71,7 +98,7 @@
                         <button type="button" class="close" data-dismiss="modal">
                             <span aria-hidden="true">&times;</span>
                         </button>
-                        <h4 class="modal-title">Examples</h4>
+                        <h4 class="modal-title">Example Programs</h4>
                     </div>
                     <div class="modal-body" id="examples-modal-body" style="overflow-y: scroll; height:256px">
                     </div>
@@ -99,6 +126,52 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="saveas-modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Save Program As</h4>
+                    </div>
+
+                    <div class="modal-body" id="examples-modal-body" style="overflow-y: scroll; height:256px">
+                        <form role="form" onsubmit="return false;">
+                            <div class="form-group">
+                                <label for="saveas-program-name">Program Name</label>
+                                <input class="form-control" id="saveas-program-name" placeholder="">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal" id="modal-saveas-button">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="open-modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Open Program</h4>
+                    </div>
+                    <div class="modal-body" id="open-modal-body" style="overflow-y: scroll; height:256px">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cover"></div>
 
     </body>
     <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>

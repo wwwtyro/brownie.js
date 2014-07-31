@@ -6,6 +6,7 @@ var light, brownie;
 var worker;
 var editor;
 var trackball;
+var currentProgramName = "untitled";
 
 function QueueBug() {
     // Because https://code.google.com/p/chromium/issues/detail?id=393569
@@ -137,10 +138,58 @@ window.onload = function() {
     document.getElementById("center-button").addEventListener("click", onCenter, false);
 
     loadExamplesIndex();
+    initializeSaves();
+    document.getElementById("open-button").addEventListener("click", onOpen, false);
+    document.getElementById("save-button").addEventListener("click", onSave, false);
+    document.getElementById("modal-saveas-button").addEventListener("click", onModalSaveAs, false);
+    setCurrentProgramName(currentProgramName);
 
     reflow();
     $("#cover").fadeOut(500);
     animate();
+}
+
+function onSave() {
+    if (currentProgramName == "untitled") {
+        $("#saveas-modal").modal("show");
+        return;
+    }
+    saveProgram(currentProgramName, editor.getSession().getValue());
+}
+
+function onModalSaveAs() {
+    var programName = document.getElementById("saveas-program-name").value;
+    saveProgram(programName, editor.getSession().getValue());
+    setCurrentProgramName(programName);
+}
+
+function initializeSaves() {
+    if (localStorage.programs === undefined) {
+        localStorage.programs = JSON.stringify({});
+    }
+}
+
+function saveProgram(programName, programText) {
+    var programs = getPrograms();
+    programs[programName] = programText;
+    setPrograms(programs);
+}
+
+function openProgram(programName) {
+    editor.setValue(getPrograms()[programName], -1);
+}
+
+function getPrograms() {
+    return JSON.parse(localStorage.programs);
+}
+
+function setPrograms(programs) {
+    localStorage.programs = JSON.stringify(programs);
+}
+
+function setCurrentProgramName(programName) {
+    currentProgramName = programName;
+    document.getElementById("current-program-name").innerHTML = programName;
 }
 
 function loadExamplesIndex() {
@@ -155,15 +204,38 @@ function loadExamplesIndex() {
         for (var i in index.examples) {
             var example = index.examples[i];
             (function(e) {
+                // Dont do this - these eventlisteners might hang around. Should just have a list of names and an open button.
                 document.getElementById(sprintf("example-select-%s", e)).addEventListener("click", function() {
                     $.get(sprintf("examples/%s.js", e), function(data) {
                         editor.setValue(data, -1);
+                        setCurrentProgramName("untitled");
                         $("#examples-modal").modal("hide");
                     }, "text");
                 }, false);
             })(example);
         }
     });
+}
+
+function onOpen() {
+    var programs = getPrograms();
+    var div = document.getElementById("open-modal-body");
+    var content = "";
+    for (var programName in programs) {
+        content += sprintf("<span id='open-select-%s' class='pseudolink'>%s</span><br>", programName, programName);
+    }
+    div.innerHTML = content;
+    for (var programName in programs) {
+        (function(n) {
+            // Dont do this - these eventlisteners might hang around. Should just have a list of names and an open button.
+            document.getElementById(sprintf("open-select-%s", n)).addEventListener("click", function() {
+                openProgram(n);
+                setCurrentProgramName(n);
+                $("#open-modal").modal("hide");
+            });
+        })(programName);
+    }
+    $("#open-modal").modal("show");
 }
 
 function loadDefaultExample() {
