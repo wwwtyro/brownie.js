@@ -80,3 +80,11 @@ body {
     width: 100%;
     resize: none;
 }
+
+#help-modal .modal-dialog {
+    width: 50%;
+}
+
+.modal {
+    overflow-y: auto;
+}
