@@ -7,6 +7,7 @@ var worker;
 var editor;
 var trackball;
 var currentProgramName = "untitled";
+var spin = true;
 
 function QueueBug() {
     // Because https://code.google.com/p/chromium/issues/detail?id=393569
@@ -132,6 +133,10 @@ window.onload = function() {
         worker.postMessage({
             command: "clear"
         });
+    }, false);
+
+    document.getElementById("spin-button").addEventListener("click", function() {
+        spin = !spin;
     }, false);
 
     document.getElementById("export-button").addEventListener("click", onExport, false);
@@ -346,7 +351,7 @@ function reflow() {
 
 function animate() {
     handleQueue();
-    if (document.getElementById("spin-checkbox").checked) {
+    if (spin) {
         camera.angle += 0.01;
     }
     updateCamera();
