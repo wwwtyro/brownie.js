@@ -174,6 +174,7 @@ function onModalSaveAs() {
     var programName = document.getElementById("saveas-program-name").value;
     saveProgram(programName, editor.getSession().getValue());
     setCurrentProgramName(programName);
+    document.getElementById("saveas-program-name").value = "";
 }
 
 function initializeSaves() {
