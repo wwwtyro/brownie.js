@@ -15,10 +15,13 @@ function QueueBug() {
     self.initialize = function() {
         self.index = 0;
         self.queue = [];
-        self.chunkSize = 10;
+        self.chunkSize = 1000;
     }
     self.push = function(item) {
         self.queue.push(item);
+    }
+    self.pushMultiple = function(items) {
+        self.queue.push.apply(self.queue, items);
     }
     self.shift = function() {
         var item = undefined;
@@ -253,7 +256,7 @@ function loadDefaultExample() {
 
 function onMessage(e) {
     var msg = e.data;
-    queue.push(e.data);
+    queue.pushMultiple(e.data);
 }
 
 function handleQueue(max) {

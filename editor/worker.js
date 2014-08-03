@@ -1,10 +1,23 @@
-
 "use strict";
 
-var voxels = {};
+var _voxels = {};
+var _queue = [];
+var _queueSize = 1024;
+
+function _flushQueue() {
+    postMessage(_queue);
+    _queue = [];
+}
+
+function _postMessage(item) {
+    _queue.push(item);
+    if (_queue.length >= _queueSize) {
+        _flushQueue();
+    }
+}
 
 function set(x, y, z, r, g, b) {
-    voxels[[x, y, z]] = {
+    _voxels[[x, y, z]] = {
         x: x,
         y: y,
         z: z,
@@ -12,7 +25,7 @@ function set(x, y, z, r, g, b) {
         g: g,
         b: b
     }
-    postMessage({
+    _postMessage({
         command: "set",
         x: x,
         y: y,
@@ -24,8 +37,8 @@ function set(x, y, z, r, g, b) {
 }
 
 function unset(x, y, z) {
-    delete voxels[[x, y, z]];
-    postMessage({
+    delete _voxels[[x, y, z]];
+    _postMessage({
         command: "unset",
         x: x,
         y: y,
@@ -34,18 +47,18 @@ function unset(x, y, z) {
 }
 
 function get(x, y, z) {
-    return voxels[[x, y, z]];
+    return _voxels[[x, y, z]];
 }
 
 function clear() {
-    voxels = {};
-    postMessage({
+    _voxels = {};
+    _postMessage({
         command: "clear"
     });
 }
 
 function setCamera(angle, elevation, radius, x, y, z) {
-    postMessage({
+    _postMessage({
         command: "set camera",
         angle: angle,
         elevation: elevation,
@@ -56,7 +69,7 @@ function setCamera(angle, elevation, radius, x, y, z) {
     });
 }
 
-onmessage = function (e) {
+onmessage = function(e) {
     var msg = e.data;
     if (msg.command == "run") {
         (function program() {
@@ -65,4 +78,5 @@ onmessage = function (e) {
     } else if (msg.command == "clear") {
         clear();
     }
+    _flushQueue();
 }
