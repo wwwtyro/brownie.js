@@ -65,6 +65,7 @@ window.onload = function() {
     }
     editor.on("change", function() {
         localStorage["last edited"] = editor.getValue();
+        document.getElementById("current-program-name").style.color = "red";
     });
     editor.setFontSize(16);
 
@@ -187,6 +188,8 @@ function saveProgram(programName, programText) {
     var programs = getPrograms();
     programs[programName] = programText;
     setPrograms(programs);
+    document.getElementById("current-program-name").style.color = "gray";
+
 }
 
 function openProgram(programName) {
