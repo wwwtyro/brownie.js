@@ -17,6 +17,9 @@ function _postMessage(item) {
 }
 
 function set(x, y, z, r, g, b) {
+    x = Math.round(x);
+    y = Math.round(y);
+    z = Math.round(z);
     _voxels[[x, y, z]] = {
         x: x,
         y: y,
@@ -37,6 +40,9 @@ function set(x, y, z, r, g, b) {
 }
 
 function unset(x, y, z) {
+    x = Math.round(x);
+    y = Math.round(y);
+    z = Math.round(z);
     delete _voxels[[x, y, z]];
     _postMessage({
         command: "unset",
@@ -47,6 +53,9 @@ function unset(x, y, z) {
 }
 
 function get(x, y, z) {
+    x = Math.round(x);
+    y = Math.round(y);
+    z = Math.round(z);
     return _voxels[[x, y, z]];
 }
 
