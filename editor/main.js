@@ -142,6 +142,11 @@ window.onload = function() {
         spin = !spin;
     }, false);
 
+    document.getElementById("new-button").addEventListener("click", function() {
+        setCurrentProgramName("untitled");
+        editor.setValue("", -1);  
+    }, false);
+
     document.getElementById("export-button").addEventListener("click", onExport, false);
     document.getElementById("center-button").addEventListener("click", onCenter, false);
 
