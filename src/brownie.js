@@ -36,7 +36,6 @@ var Brownie = function(renderer) {
     };
 
     self.getGeometry = function() {
-        self.rebuild();
         return self.gm.geometry;
     };
 
