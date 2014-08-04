@@ -11,6 +11,7 @@
     <script src="main.js"></script>
     <script src="sprintf.min.js"></script>
     <script src="jquery.min.js"></script>
+    <script src="FileSaver.js"></script>
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="style.css">
 
@@ -61,7 +62,7 @@
                                         <button type="button" class="btn btn-link" id="clear-button">Clear</button>
                                     </li>
                                     <li>
-                                        <button type="button" class="btn btn-link" id="export-button">Export</button>
+                                        <button type="button" class="btn btn-link" id="export-voxels-button">Export voxels...</button>
                                     </li>
                                 </ul>
                             </li>
@@ -126,8 +127,20 @@
                         </button>
                         <h4 class="modal-title">Export</h4>
                     </div>
-                    <textarea disabled class="modal-body" id="export-modal-body" style="overflow-y: scroll; height:256px">
-                    </textarea>
+                    <div class="modal-body">
+                        <textarea disabled class="modal-body" id="export-modal-body"></textarea>
+                        <form role="form" onsubmit="return false;">
+                            <div class="form-group">
+                                <label for="export-voxels-filename">Filename</label>
+                                <input class="form-control" id="export-voxels-filename" placeholder="">
+                            </div>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="export-voxels-saveas-button">
+                                    Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                     </div>
@@ -144,7 +157,6 @@
                         </button>
                         <h4 class="modal-title">Save Program As</h4>
                     </div>
-
                     <div class="modal-body" id="examples-modal-body" style="overflow-y: scroll; height:256px">
                         <form role="form" onsubmit="return false;">
                             <div class="form-group">

@@ -145,13 +145,20 @@ var VoxelManager = function() {
                 x: v.x,
                 y: v.y,
                 z: v.z,
-                r: v.r,
-                g: v.g,
-                b: v.b
+                r: Math.floor(v.r*1000)/1000,
+                g: Math.floor(v.g*1000)/1000,
+                b: Math.floor(v.b*1000)/1000
             });
         }
         return JSON.stringify(out);
     };
+
+    self.fromJSON = function(json) {
+        for (var i = 0; i < json.length; i++) {
+            var v = json[i];
+            self.set(v.x, v.y, v.z, v.r, v.g, v.b);
+        }
+    }
 
     self.initialize();
 

@@ -114,6 +114,24 @@ var QuadManager = function() {
         self.updates = [];
     };
 
+    self.toJSON = function() {
+        var positions = [];
+        var normals = [];
+        var colors = [];
+        for (var i = 0; i < self.size; i++) {
+            if (!(i in self.unused)) {
+                positions.push.apply(positions, self.positions.subarray(i*18, i*18+19))
+                normals.push.apply(normals, self.normals.subarray(i*18, i*18+19))
+                colors.push.apply(colors, self.colors.subarray(i*18, i*18+19))
+            }
+        }
+        return {
+            positions: positions,
+            normals: normals,
+            colors: colors
+        }
+    }
+
     self.initialize();
 
 }

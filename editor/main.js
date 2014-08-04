@@ -148,7 +148,7 @@ window.onload = function() {
         editor.setValue("", -1);  
     }, false);
 
-    document.getElementById("export-button").addEventListener("click", onExport, false);
+    document.getElementById("export-voxels-button").addEventListener("click", onExportVoxels, false);
     document.getElementById("center-button").addEventListener("click", onCenter, false);
 
     loadExamplesIndex();
@@ -156,6 +156,7 @@ window.onload = function() {
     document.getElementById("open-button").addEventListener("click", onOpen, false);
     document.getElementById("save-button").addEventListener("click", onSave, false);
     document.getElementById("modal-saveas-button").addEventListener("click", onModalSaveAs, false);
+    document.getElementById("export-voxels-saveas-button").addEventListener("click", onVoxelsExportSaveAs, false);
     setCurrentProgramName(currentProgramName);
 
     reflow();
@@ -339,10 +340,16 @@ function onMouseMove(e) {
 }
 
 
-function onExport() {
+function onExportVoxels() {
     var div = document.getElementById("export-modal-body");
     div.innerHTML = brownie.toJSON();
+    document.getElementById("export-voxels-filename").value = currentProgramName + ".json";
     $("#export-modal").modal("show");
+}
+
+function onVoxelsExportSaveAs() {
+    var blob = new Blob([brownie.toJSON()], {type: "text/plain;charset=utf-8"});
+    saveAs(blob, document.getElementById("export-voxels-filename").value);    
 }
 
 function onCenter() {

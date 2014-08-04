@@ -44,6 +44,10 @@ var Brownie = function(renderer) {
         return self.vm.toJSON();
     };
 
+    self.fromJSON = function(json) {
+        self.vm.fromJSON(json);
+    }
+
     self.dispose = function() {
         self.gm.dispose();
     };
