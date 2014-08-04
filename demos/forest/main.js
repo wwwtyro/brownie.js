@@ -139,6 +139,11 @@ function getPlot(x, z) {
                     x: 0,
                     y: Math.random() * Math.PI * 2,
                     z: 0
+                },
+                scale: {
+                    x: 0.25,
+                    y: 0.25,
+                    z: 0.25
                 }
             });
         }
@@ -174,6 +179,9 @@ function drawScene() {
                 var m = brownieManager.getMesh(plot.url);
                 m.position.set(x * 16, 0, z * 16);
                 m.rotation.set(plot.rotation.x, plot.rotation.y, plot.rotation.z);
+                if (plot.scale) {
+                    m.scale.set(plot.scale.x, plot.scale.y, plot.scale.z);
+                }
                 dummy.add(m);
             }
         }
