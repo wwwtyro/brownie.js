@@ -15,22 +15,33 @@ var BrownieManager = function(renderer) {
             vertexColors: THREE.VertexColors,
             specular: 0
         });
-    }
+    };
 
     self.loadBrownie = function(url) {
         self.brownies[url] = {
             brownie: new Brownie(renderer),
             pool: [],
+            loaded: false
         };
         $.getJSON(url, function(json) {
             self.getBrownie(url).fromJSON(json);
             self.getBrownie(url).rebuild();
+            self.brownies[url].loaded = true;
         });
-    }
+    };
+
+    self.allLoaded = function() {
+        for (var url in self.brownies) {
+            if (self.brownies[url].loaded == false) {
+                return false;
+            }
+        }
+        return true;
+    };
 
     self.getBrownie = function(url) {
         return self.brownies[url].brownie;
-    }
+    };
 
     self.getMesh = function(url) {
         if (self.brownies[url].pool.length == 0) {
@@ -44,7 +55,7 @@ var BrownieManager = function(renderer) {
 
     self.releaseMesh = function(mesh) {
         self.brownies[mesh.brownieURL].pool.push(mesh);
-    }
+    };
 
     self.initialize();
 
@@ -70,14 +81,16 @@ window.onload = function() {
     scene.add(dummy);
 
     var g = new THREE.IcosahedronGeometry(0.5, 3);
-    var m = new THREE.MeshBasicMaterial({color: 0x00ffff});
+    var m = new THREE.MeshBasicMaterial({
+        color: 0x00ffff
+    });
     player = new THREE.Mesh(g, m);
     player.position.set(0, 16, 0);
     scene.add(player);
 
     player.v = new THREE.Vector3();
 
-    light = new THREE.PointLight(0xffffff, 1, 8*16);
+    light = new THREE.PointLight(0xffffff, 1, 8 * 16);
     player.add(light);
 
     brownieManager = new BrownieManager(renderer);
@@ -95,7 +108,15 @@ window.onload = function() {
 
     field = {};
 
+    window.onresize = onResize;
+
     animate();
+}
+
+function onResize() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 }
 
 function randomChoice(a) {
@@ -115,12 +136,18 @@ function getPlot(x, z) {
             }
         });
         if (Math.random() < 0.1) {
+            var scale = Math.random() * 0.5 + 0.5;
             brownies.push({
                 url: randomChoice(["tree-0.json", "tree-1.json", "tree-2.json", "tree-3.json"]),
                 rotation: {
                     x: 0,
                     y: Math.random() * Math.PI * 2,
                     z: 0
+                },
+                scale: {
+                    x: scale,
+                    y: scale,
+                    z: scale
                 }
             });
         } else if (Math.random() < 0.01) {
@@ -130,6 +157,11 @@ function getPlot(x, z) {
                     x: 0,
                     y: Math.random() * Math.PI * 2,
                     z: 0
+                },
+                scale: {
+                    x: 0.75,
+                    y: 0.75,
+                    z: 0.75
                 }
             });
         } else if (Math.random() < 0.001) {
@@ -154,8 +186,8 @@ function getPlot(x, z) {
 
 function getPlayerBlock() {
     return {
-        x: Math.floor(player.position.x/16),
-        z: Math.floor((player.position.z+64)/16)
+        x: Math.floor(player.position.x / 16),
+        z: Math.floor((player.position.z + 64) / 16)
     };
 }
 
@@ -169,6 +201,7 @@ function clearScene() {
 }
 
 var range = 11;
+
 function drawScene() {
     var pb = getPlayerBlock();
     for (var x = pb.x - range; x < pb.x + range; x++) {
@@ -193,26 +226,49 @@ function keyOn(key) {
 }
 
 var speed = 0.1;
+
 function updatePlayerPosition() {
-    if (keyOn('up')) {
+    if (keyOn('up') || keyOn('w')) {
         player.v.z -= speed;
     }
-    if (keyOn('down')) {
+    if (keyOn('down') || keyOn('s')) {
         player.v.z += speed;
     }
-    if (keyOn('left')) {
+    if (keyOn('left') || keyOn('a')) {
         player.v.x -= speed;
     }
-    if (keyOn('right')) {
+    if (keyOn('right') || keyOn('d')) {
         player.v.x += speed;
     }
+    player.position.y = Math.sin(tick * 0.1) * 1 + 16;
     player.position.add(player.v)
     player.v.multiplyScalar(0.9);
+    if (player.v.length() > 0.001) {
+        document.getElementById("help").style.visibility = "hidden";
+    } else {
+        document.getElementById("help").style.visibility = "visible";
+    }
 }
 
+function updateHelp() {
+    var help = document.getElementById("help");
+    if (brownieManager.allLoaded()) {
+        help.innerHTML = "Use WASD or arrow keys to move.";
+    } else {
+        help.innerHTML = "Loading...";
+    }
+    
+}
+
+var tick = 0;
+
 function animate() {
+    tick++;
+    updateHelp();
     updatePlayerPosition();
-    camera.position.add(player.position.clone().add(new THREE.Vector3(0, 96, 64)).sub(camera.position.clone()).multiplyScalar(0.1));
+    var targetPos = player.position.clone();
+    targetPos.y = 16;
+    camera.position.add(targetPos.clone().add(new THREE.Vector3(0, 96, 64)).sub(camera.position.clone()).multiplyScalar(0.1));
     camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, -96, -64)));
     clearScene();
     drawScene();

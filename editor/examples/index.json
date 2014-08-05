@@ -2,6 +2,10 @@
     "default": "tree",
     "examples": [
         "tree",
-        "sphere"
+        "sphere",
+        "fairyring",
+        "column",
+        "brokencolumn",
+        "grass"
     ]
 }
