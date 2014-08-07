@@ -64,7 +64,7 @@ var Scene = function(canvasID) {
 
     self.setBrownie = function(brownie) {
         if (self.mesh !== null) {
-            self.scene.remove(self.brownieMesh);
+            self.scene.remove(self.mesh);
         }
         self.brownie = brownie;
         self.mesh = new THREE.Mesh(brownie.getGeometry(), material);

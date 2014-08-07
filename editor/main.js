@@ -37,6 +37,7 @@ window.onload = function() {
 
     scene = new Scene("render-canvas");
     brownie = new Brownie(scene.getRenderer());
+    brownie.rebuild();
     scene.setBrownie(brownie);
 
     var sceneCanvas = document.getElementById("render-canvas");
