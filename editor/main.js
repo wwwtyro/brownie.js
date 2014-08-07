@@ -1,46 +1,12 @@
 "use strict";
 
-
-var scene, mesh, camera, renderer, renderCanvas;
-var light, brownie;
+var scene;
+var brownie;
 var worker;
 var editor;
 var trackball;
 var currentProgramName = "untitled";
 var spin = true;
-
-function QueueBug() {
-    // Because https://code.google.com/p/chromium/issues/detail?id=393569
-    var self = this;
-    self.initialize = function() {
-        self.index = 0;
-        self.queue = [];
-        self.chunkSize = 1000;
-    }
-    self.push = function(item) {
-        self.queue.push(item);
-    }
-    self.pushMultiple = function(items) {
-        self.queue.push.apply(self.queue, items);
-    }
-    self.shift = function() {
-        var item = undefined;
-        if (self.index < self.queue.length) {
-            item = self.queue[self.index];
-        }
-        self.index++;
-        if (self.index >= self.chunkSize || self.index >= self.queue.length) {
-            self.queue = self.queue.slice(self.index, self.queue.length);
-            self.index = 0;
-        }
-        return item;
-    }
-    self.length = function() {
-        return self.queue.length;
-    }
-    self.initialize();
-}
-
 
 var queue = new QueueBug();
 
@@ -69,60 +35,17 @@ window.onload = function() {
     });
     editor.setFontSize(16);
 
-    renderCanvas = document.getElementById("render-canvas");
-    renderCanvas.width = window.innerWidth / 2;
-    renderCanvas.height = window.innerHeight;
-
-    renderer = new THREE.WebGLRenderer({
-        canvas: renderCanvas
-    });
-    renderer.setClearColor(0x555555);
-
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(75, (window.innerWidth / 2) / window.innerHeight, 0.1, 1000);
-    camera.elevation = Math.PI / 4;
-    camera.radius = 10.0;
-    camera.angle = 0.0;
-    camera.translation = new THREE.Vector3(0, 0, 0);
-
-    brownie = new Brownie(renderer);
-    var m = new THREE.MeshPhongMaterial({
-        color: 0xffffff,
-        vertexColors: THREE.VertexColors,
-        specular: 0
-    });
-    mesh = new THREE.Mesh(brownie.getGeometry(), m);
-    scene.add(mesh);
-
-    var t = THREE.ImageUtils.loadTexture("checkerboard.png");
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(1000, 1000);
-    var g = new THREE.PlaneGeometry(1, 1);
-    var m = new THREE.MeshBasicMaterial({
-        map: t,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.5
-    });
-    var p = new THREE.Mesh(g, m);
-    p.rotation.x = -Math.PI / 2;
-    p.scale.set(2000, 2000, 1);
-    p.position.y = -0.02;
-    scene.add(p);
-
-    light = new THREE.PointLight({
-        color: 0xffffff
-    });
-    light.position.set(10, 10, 20);
-    scene.add(light);
-
-    trackball = new Trackball(renderCanvas, onMouseMove);
-    renderCanvas.addEventListener("wheel", onMouseWheel, false);
+    scene = new Scene("render-canvas");
+    brownie = new Brownie(scene.getRenderer());
+    scene.setBrownie(brownie);
+        
+    var sceneCanvas = document.getElementById("render-canvas");
+    trackball = new Trackball(sceneCanvas, onMouseMove);
+    sceneCanvas.addEventListener("wheel", onMouseWheel, false);
 
     window.addEventListener("resize", reflow, false);
 
-    renderCanvas.oncontextmenu = function() {
+    sceneCanvas.oncontextmenu = function() {
         return false
     };
 
@@ -276,21 +199,11 @@ function handleQueue(max) {
     while (queue.length() > 0 && count < max) {
         var msg = queue.shift();
         if (msg.command == "set camera") {
-            camera.angle = msg.angle;
-            camera.elevation = msg.elevation;
-            camera.radius = msg.radius;
-            camera.translation.set(msg.x, msg.y, msg.z);
+            scene.setCamera(msg.angle, msg.elevation, msg.radius, msg.x, msg.y, msg.z);
         } else if (msg.command == "clear") {
             brownie.dispose();
-            scene.remove(mesh);
-            brownie = new Brownie(renderer);
-            var m = new THREE.MeshPhongMaterial({
-                color: 0xffffff,
-                vertexColors: THREE.VertexColors,
-                specular: 0
-            });
-            mesh = new THREE.Mesh(brownie.getGeometry(), m);
-            scene.add(mesh);
+            brownie = new Brownie(scene.getRenderer());
+            scene.setBrownie(brownie);
         } else if (msg.command == "set") {
             brownie.set(msg.x, msg.y, msg.z, msg.r, msg.g, msg.b);
             rebuild = true;
@@ -305,37 +218,27 @@ function handleQueue(max) {
     }
 }
 
-function updateCamera() {
-    camera.position.x = camera.radius * Math.cos(camera.angle) * Math.cos(camera.elevation);
-    camera.position.y = camera.radius * Math.sin(camera.elevation);
-    camera.position.z = camera.radius * Math.sin(camera.angle) * Math.cos(camera.elevation);
-    var forward = new THREE.Vector3(0, 0, 0).sub(camera.position).normalize();
-    var right = new THREE.Vector3(Math.cos(camera.angle + Math.PI / 2), 0, Math.sin(camera.angle + Math.PI / 2));
-    camera.up = forward.clone().cross(right).normalize();
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-    camera.position.add(camera.translation);
-}
 
 function onMouseWheel(e) {
-    camera.radius *= e.deltaY > 0 ? 1.1 : 0.9;
-    camera.radius = Math.max(1, camera.radius);
+    scene.camera.radius *= e.deltaY > 0 ? 1.1 : 0.9;
+    scene.camera.radius = Math.max(1, camera.radius);
 }
 
 
 function onMouseMove(e) {
     if (e.button == 0) {
-        camera.elevation += e.dy * 0.0025;
-        camera.angle += e.dx * 0.0025;
-        camera.elevation = Math.max(-0.99 * Math.PI / 2, Math.min(0.99 * Math.PI / 2, camera.elevation));
+        scene.camera.elevation += e.dy * 0.0025;
+        scene.camera.angle += e.dx * 0.0025;
+        scene.camera.elevation = Math.max(-0.99 * Math.PI / 2, Math.min(0.99 * Math.PI / 2, scene.camera.elevation));
         return;
     }
     if (e.button == 2) {
-        var forward = new THREE.Vector3(Math.cos(camera.angle), 0, Math.sin(camera.angle));
+        var forward = new THREE.Vector3(Math.cos(scene.camera.angle), 0, Math.sin(scene.camera.angle));
         forward.normalize();
-        var right = new THREE.Vector3(Math.cos(camera.angle + Math.PI / 2), 0, Math.sin(camera.angle + Math.PI / 2));
+        var right = new THREE.Vector3(Math.cos(scene.camera.angle + Math.PI / 2), 0, Math.sin(scene.camera.angle + Math.PI / 2));
         right.normalize();
-        camera.translation.add(right.clone().multiplyScalar(e.dx * 0.001 * camera.radius));
-        camera.translation.add(forward.clone().multiplyScalar(-e.dy * 0.001 * camera.radius));
+        scene.camera.translation.add(right.clone().multiplyScalar(e.dx * 0.001 * scene.camera.radius));
+        scene.camera.translation.add(forward.clone().multiplyScalar(-e.dy * 0.001 * scene.camera.radius));
     }
 }
 
@@ -354,27 +257,22 @@ function onVoxelsExportSaveAs() {
 
 function onCenter() {
     var c = brownie.getCentroid();
-    camera.translation.set(c.x, c.y, c.z);
+    scene.camera.translation.set(c.x, c.y, c.z);
 }
 
 function reflow() {
     var menu = document.getElementById("menu");
     var edit = document.getElementById("editor");
-    var windowWidth = window.innerWidth;
-    var windowHeight = window.innerHeight;
     edit.style.top = menu.offsetHeight + "px";
-    renderer.setSize(window.innerWidth / 2, window.innerHeight);
-    camera.aspect = (window.innerWidth / 2) / window.innerHeight;
-    camera.updateProjectionMatrix();
+    scene.setSize(window.innerWidth/2, window.innerHeight);
 }
 
 function animate() {
     handleQueue();
     if (spin) {
-        camera.angle += 0.01;
+        scene.camera.angle += 0.01;
     }
-    updateCamera();
-    light.position = camera.position.clone();
-    renderer.render(scene, camera);
+    scene.light.position = scene.camera.position.clone();
+    scene.render();
     requestAnimationFrame(animate);
 }
