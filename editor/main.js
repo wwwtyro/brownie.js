@@ -38,7 +38,7 @@ window.onload = function() {
     scene = new Scene("render-canvas");
     brownie = new Brownie(scene.getRenderer());
     scene.setBrownie(brownie);
-        
+
     var sceneCanvas = document.getElementById("render-canvas");
     trackball = new Trackball(sceneCanvas, onMouseMove);
     sceneCanvas.addEventListener("wheel", onMouseWheel, false);
@@ -68,7 +68,7 @@ window.onload = function() {
 
     document.getElementById("new-button").addEventListener("click", function() {
         setCurrentProgramName("untitled");
-        editor.setValue("", -1);  
+        editor.setValue("", -1);
     }, false);
 
     document.getElementById("export-voxels-button").addEventListener("click", onExportVoxels, false);
@@ -221,7 +221,7 @@ function handleQueue(max) {
 
 function onMouseWheel(e) {
     scene.camera.radius *= e.deltaY > 0 ? 1.1 : 0.9;
-    scene.camera.radius = Math.max(1, camera.radius);
+    scene.camera.radius = Math.max(1, scene.camera.radius);
 }
 
 
@@ -251,8 +251,10 @@ function onExportVoxels() {
 }
 
 function onVoxelsExportSaveAs() {
-    var blob = new Blob([brownie.toJSON()], {type: "text/plain;charset=utf-8"});
-    saveAs(blob, document.getElementById("export-voxels-filename").value);    
+    var blob = new Blob([brownie.toJSON()], {
+        type: "text/plain;charset=utf-8"
+    });
+    saveAs(blob, document.getElementById("export-voxels-filename").value);
 }
 
 function onCenter() {
@@ -264,7 +266,7 @@ function reflow() {
     var menu = document.getElementById("menu");
     var edit = document.getElementById("editor");
     edit.style.top = menu.offsetHeight + "px";
-    scene.setSize(window.innerWidth/2, window.innerHeight);
+    scene.setSize(window.innerWidth / 2, window.innerHeight);
 }
 
 function animate() {

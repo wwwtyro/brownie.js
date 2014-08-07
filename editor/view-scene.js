@@ -1,4 +1,3 @@
-
 var Scene = function(canvasID) {
 
     "use strict";
@@ -34,7 +33,7 @@ var Scene = function(canvasID) {
     self.initializeScene = function() {
         self.scene = new THREE.Scene();
         // Camera
-        self.camera = new THREE.PerspectiveCamera(75, self.renderCanvas.width/self.renderCanvas.height, 0.1, 1000);
+        self.camera = new THREE.PerspectiveCamera(75, self.renderCanvas.width / self.renderCanvas.height, 0.1, 1000);
         self.camera.elevation = Math.PI / 4;
         self.camera.radius = 10.0;
         self.camera.angle = 0.0;
@@ -96,7 +95,7 @@ var Scene = function(canvasID) {
 
     self.setSize = function(width, height) {
         self.renderer.setSize(width, height);
-        self.camera.aspect = width/height;
+        self.camera.aspect = width / height;
         self.camera.updateProjectionMatrix();
     }
 
@@ -107,5 +106,3 @@ var Scene = function(canvasID) {
 
     self.initialize();
 }
-
-
