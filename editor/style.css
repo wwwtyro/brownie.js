@@ -46,7 +46,6 @@ body {
 
 .pseudolink {
     color: #428bca;
-    cursor: hand;
     cursor: pointer;
 }
 
@@ -91,4 +90,25 @@ body {
 
 .modal {
     overflow-y: auto;
+}
+
+#render-controls {
+    position: fixed;
+    padding: 8px;
+    color: white;
+    left: 50%;
+    right: 0%;
+    bottom: 0%;
+    background-color: rgba(0, 0, 0, 0.25);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;    
+    cursor: default;
+}
+
+.clickable {
+    cursor: pointer;
 }

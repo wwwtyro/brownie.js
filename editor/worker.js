@@ -1,8 +1,9 @@
 "use strict";
 
-var _voxels = {};
 var _queue = [];
 var _queueSize = 1024;
+var _frames = [{}];
+var _frame = 0;
 
 function _flushQueue() {
     postMessage(_queue);
@@ -20,7 +21,7 @@ function set(x, y, z, r, g, b) {
     x = Math.round(x);
     y = Math.round(y);
     z = Math.round(z);
-    _voxels[[x, y, z]] = {
+    _frames[_frame][[x, y, z]] = {
         x: x,
         y: y,
         z: z,
@@ -43,7 +44,7 @@ function unset(x, y, z) {
     x = Math.round(x);
     y = Math.round(y);
     z = Math.round(z);
-    delete _voxels[[x, y, z]];
+    delete _frames[_frame][[x, y, z]];
     _postMessage({
         command: "unset",
         x: x,
@@ -56,11 +57,11 @@ function get(x, y, z) {
     x = Math.round(x);
     y = Math.round(y);
     z = Math.round(z);
-    return _voxels[[x, y, z]];
+    return _frames[_frame][[x, y, z]];
 }
 
 function clear() {
-    _voxels = {};
+    _frames[_frame] = {};
     _postMessage({
         command: "clear"
     });
@@ -75,6 +76,21 @@ function setCamera(angle, elevation, radius, x, y, z) {
         x: x,
         y: y,
         z: z
+    });
+}
+
+function addFrame() {
+    _frames.push({});
+    _postMessage({
+        command: "add frame"
+    });
+}
+
+function setFrame(n) {
+    _frame = n;
+    _postMessage({
+        command: "set frame",
+        n: n
     });
 }
 

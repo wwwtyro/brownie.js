@@ -105,4 +105,5 @@ var Scene = function(canvasID) {
     }
 
     self.initialize();
+
 }
