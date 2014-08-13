@@ -1,8 +1,25 @@
+/*
+
+    Todo:
+        
+        Disable relevant ui functionality when worker is running, e.g., 
+        disallow frame-changing.
+        
+        Provide a quiet run button that doesn't do any rendering until
+        the worker is finished. For efficient brownie construction.
+        
+        Add a function that allows the worker program to indicate how far
+        along execution is, and use that to fill out a progress bar.
+
+        Fix the issue with callbacks in loadExamplesIndex and onProgramOpenButton.
+
+        Store the state of the editor better - save state, program name, etc.
+
+*/
+
 (function() {
 
     "use strict";
-
-    window.aaa = this;
 
     // Globals.
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
@@ -276,6 +293,14 @@
         document.getElementById("frame-number").innerHTML = sprintf("Frame %d/%d", frame + 1, frames.length);
     }
 
+    function framesToJSON() {
+        var json = [];
+        for (var i = 0; i < frames.length; i++) {
+            json.push(frames[i].toJSON());
+        }
+        return JSON.stringify(json);
+    }
+
     // Menu/UI
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
@@ -332,13 +357,13 @@
 
     function onModelExportVoxelsButton() {
         var div = document.getElementById("export-modal-body");
-        div.innerHTML = frames[frame].toJSON();
+        div.innerHTML = framesToJSON();
         document.getElementById("export-voxels-filename").value = currentProgramName + ".json";
         $("#export-modal").modal("show");
     }
 
     function onModelExportVoxelsSaveButton() {
-        var blob = new Blob([frames[frame].toJSON()], {
+        var blob = new Blob([framesToJSON()], {
             type: "text/plain;charset=utf-8"
         });
         saveAs(blob, document.getElementById("export-voxels-filename").value);

@@ -1,6 +1,6 @@
 "use strict";
 
-var scene, dummy, camera, renderer, light, player;
+var scene, dummy, camera, renderer, player;
 var brownieManager, field;
 
 var BrownieManager = function(renderer) {
@@ -19,13 +19,18 @@ var BrownieManager = function(renderer) {
 
     self.loadBrownie = function(url) {
         self.brownies[url] = {
-            brownie: new Brownie(renderer),
-            pool: [],
+            brownies: [],
+            pools: [],
             loaded: false
         };
         $.getJSON(url, function(json) {
-            self.getBrownie(url).fromJSON(json);
-            self.getBrownie(url).rebuild();
+            for (var i = 0; i < json.length; i++) {
+                var b = new Brownie(renderer);
+                b.fromJSON(json[i]);
+                b.rebuild();
+                self.brownies[url].brownies.push(b);
+                self.brownies[url].pools.push([]);
+            }
             self.brownies[url].loaded = true;
         });
     };
@@ -39,22 +44,24 @@ var BrownieManager = function(renderer) {
         return true;
     };
 
-    self.getBrownie = function(url) {
-        return self.brownies[url].brownie;
+    self.getBrownie = function(url, index) {
+        return self.brownies[url].brownies[index];
     };
 
-    self.getMesh = function(url) {
-        if (self.brownies[url].pool.length == 0) {
-            var mesh = new THREE.Mesh(self.getBrownie(url).getGeometry(), self.brownieMaterial);
+    self.getMesh = function(url, index) {
+        if (self.brownies[url].pools[index].length == 0) {
+            console.log("new mesh");
+            var mesh = new THREE.Mesh(self.getBrownie(url, index).getGeometry(), self.brownieMaterial);
             mesh.brownieURL = url;
+            mesh.brownieIndex = index;
             return mesh;
         } else {
-            return self.brownies[url].pool.pop();
+            return self.brownies[url].pools[index].pop();
         }
     };
 
     self.releaseMesh = function(mesh) {
-        self.brownies[mesh.brownieURL].pool.push(mesh);
+        self.brownies[mesh.brownieURL].pools[mesh.brownieIndex].push(mesh);
     };
 
     self.initialize();
@@ -80,7 +87,7 @@ window.onload = function() {
     dummy = new THREE.Object3D();
     scene.add(dummy);
 
-    var g = new THREE.IcosahedronGeometry(0.5, 3);
+    var g = new THREE.IcosahedronGeometry(0.25, 3);
     var m = new THREE.MeshBasicMaterial({
         color: 0x00ffff
     });
@@ -90,21 +97,13 @@ window.onload = function() {
 
     player.v = new THREE.Vector3();
 
-    light = new THREE.PointLight(0xffffff, 1, 8 * 16);
+    var light = new THREE.PointLight(0xffffff, 1, 8 * 16);
     player.add(light);
 
     brownieManager = new BrownieManager(renderer);
 
-    brownieManager.loadBrownie("tree-0.json");
-    brownieManager.loadBrownie("tree-1.json");
-    brownieManager.loadBrownie("tree-2.json");
-    brownieManager.loadBrownie("tree-3.json");
-    brownieManager.loadBrownie("grass-0.json");
-    brownieManager.loadBrownie("grass-1.json");
-    brownieManager.loadBrownie("grass-2.json");
-    brownieManager.loadBrownie("column-0.json");
-    brownieManager.loadBrownie("column-1.json");
-    brownieManager.loadBrownie("shrooms-0.json");
+    brownieManager.loadBrownie("trees.json");
+    brownieManager.loadBrownie("grasses.json");
 
     field = {};
 
@@ -119,26 +118,28 @@ function onResize() {
     camera.updateProjectionMatrix();
 }
 
-function randomChoice(a) {
-    var r = Math.floor(Math.random() * a.length);
-    return a[r];
-}
-
 function getPlot(x, z) {
     if (field[[x, z]] == undefined) {
         var brownies = [];
         brownies.push({
-            url: randomChoice(["grass-0.json", "grass-1.json", "grass-2.json"]),
+            url: "grasses.json",
+            index: Math.floor(Math.random() * 5),
             rotation: {
                 x: 0,
                 y: 0,
                 z: 0
+            },
+            scale: {
+                x: 1,
+                y: 1,
+                z: 1
             }
-        });
+        })
         if (Math.random() < 0.1) {
             var scale = Math.random() * 0.5 + 0.5;
             brownies.push({
-                url: randomChoice(["tree-0.json", "tree-1.json", "tree-2.json", "tree-3.json"]),
+                url: "trees.json",
+                index: Math.floor(Math.random() * 5),
                 rotation: {
                     x: 0,
                     y: Math.random() * Math.PI * 2,
@@ -150,34 +151,6 @@ function getPlot(x, z) {
                     z: scale
                 }
             });
-        } else if (Math.random() < 0.01) {
-            brownies.push({
-                url: randomChoice(["column-0.json", "column-1.json"]),
-                rotation: {
-                    x: 0,
-                    y: Math.random() * Math.PI * 2,
-                    z: 0
-                },
-                scale: {
-                    x: 0.75,
-                    y: 0.75,
-                    z: 0.75
-                }
-            });
-        } else if (Math.random() < 0.001) {
-            brownies.push({
-                url: randomChoice(["shrooms-0.json"]),
-                rotation: {
-                    x: 0,
-                    y: Math.random() * Math.PI * 2,
-                    z: 0
-                },
-                scale: {
-                    x: 0.25,
-                    y: 0.25,
-                    z: 0.25
-                }
-            });
         }
         field[[x, z]] = brownies;
     }
@@ -187,20 +160,20 @@ function getPlot(x, z) {
 function getPlayerBlock() {
     return {
         x: Math.floor(player.position.x / 16),
-        z: Math.floor((player.position.z + 64) / 16)
+        z: Math.floor((player.position.z) / 16)
     };
 }
+
+var range = 8;
 
 function clearScene() {
     var children = dummy.children.slice();
     for (var i in children) {
-        var child = children[i];
-        dummy.remove(child);
-        brownieManager.releaseMesh(child);
+        var b = children[i];
+        dummy.remove(b);
+        brownieManager.releaseMesh(b);
     }
 }
-
-var range = 11;
 
 function drawScene() {
     var pb = getPlayerBlock();
@@ -209,7 +182,7 @@ function drawScene() {
             var plots = getPlot(x, z);
             for (var i in plots) {
                 var plot = plots[i];
-                var m = brownieManager.getMesh(plot.url);
+                var m = brownieManager.getMesh(plot.url, plot.index);
                 m.position.set(x * 16, 0, z * 16);
                 m.rotation.set(plot.rotation.x, plot.rotation.y, plot.rotation.z);
                 if (plot.scale) {
@@ -257,7 +230,7 @@ function updateHelp() {
     } else {
         help.innerHTML = "Loading...";
     }
-    
+
 }
 
 var tick = 0;
@@ -268,10 +241,12 @@ function animate() {
     updatePlayerPosition();
     var targetPos = player.position.clone();
     targetPos.y = 16;
-    camera.position.add(targetPos.clone().add(new THREE.Vector3(0, 96, 64)).sub(camera.position.clone()).multiplyScalar(0.1));
-    camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, -96, -64)));
-    clearScene();
-    drawScene();
+    camera.position.add(targetPos.clone().add(new THREE.Vector3(0, 48, 48)).sub(camera.position.clone()).multiplyScalar(0.1));
+    camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, -48, -48)));
+    if (brownieManager.allLoaded()) {
+        clearScene();
+        drawScene();
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }

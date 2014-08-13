@@ -137,11 +137,12 @@ var VoxelManager = function() {
     };
 
     self.toJSON = function() {
+        // XXX: This needs to be refactored - should return JSON string, not object.
         var voxels = self.voxels;
-        var out = [];
+        var json = [];
         for (var i in voxels) {
             var v = voxels[i];
-            out.push({
+            json.push({
                 x: v.x,
                 y: v.y,
                 z: v.z,
@@ -150,10 +151,11 @@ var VoxelManager = function() {
                 b: Math.floor(v.b*1000)/1000
             });
         }
-        return JSON.stringify(out);
+        return json;
     };
 
     self.fromJSON = function(json) {
+        // XXX: This needs to be refactored - should take JSON string, not object.
         for (var i = 0; i < json.length; i++) {
             var v = json[i];
             self.set(v.x, v.y, v.z, v.r, v.g, v.b);
