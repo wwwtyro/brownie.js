@@ -162,8 +162,8 @@
 
     function onMouseMove(e) {
         if (isPointerLocked()) {
-            var dx = e.webkitMovementX;
-            var dy = e.webkitMovementY;
+            var dx = e.webkitMovementX || e.mozMovementX || e.movementX || 0;
+            var dy = e.webkitMovementY || e.mozMovementY || e.movementY || 0;
             fps.pitch -= dy * 0.001;
             fps.yaw += dx * 0.001;
             updateCamera();
