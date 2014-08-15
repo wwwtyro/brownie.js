@@ -1,12 +1,11 @@
 module.exports = function (grunt) {
 
-
 	grunt.initConfig({
 
 		concat: {
-			src: {
+			brownie: {
 				src: [
-					"src/brownie.js",
+					"src/core.js",
 					"src/geometry-manager.js",
 					"src/quad-manager.js",
 					"src/voxel-manager.js",
@@ -17,7 +16,7 @@ module.exports = function (grunt) {
 
 		watch: {
 			files: "src/*",
-			tasks: ["concat:src"]
+			tasks: ["concat:brownie"]
 		}
 	});
 
@@ -25,5 +24,5 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-concat');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 
-    grunt.registerTask("default", ["concat:src"]);
+    grunt.registerTask("default", ["concat:brownie"]);
 };
