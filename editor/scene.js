@@ -34,10 +34,6 @@ var Scene = function(canvasID) {
         self.scene = new THREE.Scene();
         // Camera
         self.camera = new THREE.PerspectiveCamera(75, self.renderCanvas.width / self.renderCanvas.height, 0.1, 1000);
-        self.camera.elevation = Math.PI / 4;
-        self.camera.radius = 10.0;
-        self.camera.angle = 0.0;
-        self.camera.translation = new THREE.Vector3(0, 0, 0);
         // Board
         var t = THREE.ImageUtils.loadTexture("checkerboard.png");
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -75,24 +71,6 @@ var Scene = function(canvasID) {
         return self.renderer;
     }
 
-    self.setCamera = function(angle, elevation, radius, x, y, z) {
-        self.camera.angle = angle;
-        self.camera.elevation = elevation;
-        self.camera.radius = radius;
-        self.camera.translation.set(x, y, z);
-    }
-
-    self.updateCamera = function() {
-        self.camera.position.x = self.camera.radius * Math.cos(self.camera.angle) * Math.cos(self.camera.elevation);
-        self.camera.position.y = self.camera.radius * Math.sin(self.camera.elevation);
-        self.camera.position.z = self.camera.radius * Math.sin(self.camera.angle) * Math.cos(self.camera.elevation);
-        var forward = new THREE.Vector3(0, 0, 0).sub(self.camera.position).normalize();
-        var right = new THREE.Vector3(Math.cos(self.camera.angle + Math.PI / 2), 0, Math.sin(self.camera.angle + Math.PI / 2));
-        self.camera.up = forward.clone().cross(right).normalize();
-        self.camera.lookAt(new THREE.Vector3(0, 0, 0));
-        self.camera.position.add(self.camera.translation);
-    }
-
     self.setSize = function(width, height) {
         self.renderer.setSize(width, height);
         self.camera.aspect = width / height;
@@ -100,7 +78,6 @@ var Scene = function(canvasID) {
     }
 
     self.render = function() {
-        self.updateCamera();
         self.renderer.render(self.scene, self.camera);
     }
 

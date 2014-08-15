@@ -24,14 +24,11 @@
     // Globals.
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-    var scene;
-    var frames = [];
-    var frame = 0;
+    var scene, sceneCanvas;
+    var frames = [], frame = 0;
     var worker;
     var editor;
-    var trackball;
     var currentProgramName = "untitled";
-    var spin = true;
     var queue = new QueueBug();
 
     // General.
@@ -60,11 +57,10 @@
         // Model
         document.getElementById("clear-button").addEventListener("click", onModelClearButton, false);
         document.getElementById("export-voxels-button").addEventListener("click", onModelExportVoxelsButton, false);
+        document.getElementById("export-voxels-saveas-button").addEventListener("click", onModelExportVoxelsSaveButton, false);
 
         // View
-        document.getElementById("spin-button").addEventListener("click", onViewSpinButton, false);
         document.getElementById("center-button").addEventListener("click", onViewCenterButton, false);
-        document.getElementById("export-voxels-saveas-button").addEventListener("click", onModelExportVoxelsSaveButton, false);
 
         // Menubar
         document.getElementById("run-button").addEventListener("click", onRunButton, false);
@@ -72,7 +68,6 @@
         // Frames
         document.getElementById("frame-step-left-button").addEventListener("click", onFrameStepLeftButton, false);
         document.getElementById("frame-step-right-button").addEventListener("click", onFrameStepRightButton, false);
-
     }
 
     function loadExamplesIndex() {
@@ -100,12 +95,6 @@
         });
     }
 
-    function initializeSaves() {
-        if (localStorage.programs === undefined) {
-            localStorage.programs = JSON.stringify({});
-        }
-    }
-
     function fadeOutCover() {
         setTimeout(function() {
             $("#cover").fadeOut(500);
@@ -121,9 +110,6 @@
 
     function animate() {
         handleQueue();
-        if (spin) {
-            scene.camera.angle += 0.01;
-        }
         scene.light.position = scene.camera.position.clone();
         scene.render();
         requestAnimationFrame(animate);
@@ -156,29 +142,27 @@
         document.getElementById("current-program-name").innerHTML = programName;
     }
 
+    function initializeSaves() {
+        if (localStorage.programs === undefined) {
+            localStorage.programs = JSON.stringify({});
+        }
+    }
+
     // Mouse
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+    function onMouseDown(e) {
+        PointerLock.requestFor(sceneCanvas);
+    }
+
     function onMouseWheel(e) {
-        scene.camera.radius *= e.deltaY > 0 ? 1.1 : 0.9;
-        scene.camera.radius = Math.max(1, scene.camera.radius);
     }
 
     function onMouseMove(e) {
-        if (e.button == 0) {
-            scene.camera.elevation += e.dy * 0.0025;
-            scene.camera.angle += e.dx * 0.0025;
-            scene.camera.elevation = Math.max(-0.99 * Math.PI / 2, Math.min(0.99 * Math.PI / 2, scene.camera.elevation));
-            return;
-        }
-        if (e.button == 2) {
-            var forward = new THREE.Vector3(Math.cos(scene.camera.angle), 0, Math.sin(scene.camera.angle));
-            forward.normalize();
-            var right = new THREE.Vector3(Math.cos(scene.camera.angle + Math.PI / 2), 0, Math.sin(scene.camera.angle + Math.PI / 2));
-            right.normalize();
-            scene.camera.translation.add(right.clone().multiplyScalar(e.dx * 0.001 * scene.camera.radius));
-            scene.camera.translation.add(forward.clone().multiplyScalar(-e.dy * 0.001 * scene.camera.radius));
-        }
+        var dx = e.webkitMovementX;
+        var dy = e.webkitMovementY;
+        scene.camera.pitch -= dy * 0.001;
+        scene.camera.yaw += dx * 0.001;
     }
 
     // Worker
@@ -202,7 +186,7 @@
         while (queue.length() > 0 && count < max) {
             var msg = queue.shift();
             if (msg.command == "set camera") {
-                scene.setCamera(msg.angle, msg.elevation, msg.radius, msg.x, msg.y, msg.z);
+                // XXX: handle setting camera from worker.
             } else if (msg.command == "clear") {
                 brownie.dispose();
                 brownie = new Brownie(scene.getRenderer());
@@ -269,10 +253,16 @@
         brownie.rebuild();
         frames[0] = brownie;
         scene.setBrownie(brownie);
-        var sceneCanvas = document.getElementById("render-canvas");
-        trackball = new Trackball(sceneCanvas, onMouseMove);
-        sceneCanvas.addEventListener("wheel", onMouseWheel, false);
+        sceneCanvas = document.getElementById("render-canvas");
+        sceneCanvas.addEventListener("mousedown", onMouseDown, false);
+        window.addEventListener("mousemove", onMouseMove, false);
         window.addEventListener("resize", reflow, false);
+        scene.camera.pitch = 0;
+        scene.camera.yaw = -Math.PI/2;
+        scene.camera.locked = false;
+        PointerLock.onChange(function() {
+            scene.camera.locked = !scene.camera.locked;
+        });
         sceneCanvas.oncontextmenu = function() {
             return false
         };
@@ -371,13 +361,9 @@
 
     // View 
 
-    function onViewSpinButton() {
-        spin = !spin;
-    }
-
     function onViewCenterButton() {
         var c = frames[frame].getCentroid();
-        scene.camera.translation.set(c.x, c.y, c.z);
+        // XXX: do center
     }
 
     // Run 
