@@ -24,7 +24,7 @@
     // Globals.
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-    var scene, sceneCanvas;
+    var scene, sceneCanvas, fps;
     var frames = [], frame = 0;
     var worker;
     var editor;
@@ -161,8 +161,24 @@
     function onMouseMove(e) {
         var dx = e.webkitMovementX;
         var dy = e.webkitMovementY;
-        scene.camera.pitch -= dy * 0.001;
-        scene.camera.yaw += dx * 0.001;
+        fps.pitch -= dy * 0.001;
+        fps.yaw += dx * 0.001;
+        updateCameraVectors();
+    }
+
+    // Keyboard
+    // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+    function keyDown(key) {
+        return KeyboardJS.activeKeys().indexOf(key) >= 0 ? true : false;
+    }
+
+    var camSpeed = 0.01;
+
+    function handleKeys() {
+        if (keyDown('w')) {
+            camera.position.add(fps.front.clone().multiplyScalar(camSpeed));
+        }
     }
 
     // Worker
@@ -257,15 +273,30 @@
         sceneCanvas.addEventListener("mousedown", onMouseDown, false);
         window.addEventListener("mousemove", onMouseMove, false);
         window.addEventListener("resize", reflow, false);
-        scene.camera.pitch = 0;
-        scene.camera.yaw = -Math.PI/2;
-        scene.camera.locked = false;
+        fps = {
+            pitch: 0,
+            yaw: -Math.PI/2,
+            front: new THREE.Vector3(),
+            right: new THREE.Vector3(),
+            locked: false
+        };
+        updateCameraVectors();
         PointerLock.onChange(function() {
-            scene.camera.locked = !scene.camera.locked;
+            fps.locked = !fps.locked;
         });
         sceneCanvas.oncontextmenu = function() {
             return false
         };
+    }
+
+    function updateCameraVectors() {
+        fps.front.set(
+            Math.cos(fps.pitch) * Math.cos(fps.yaw),
+            Math.sin(fps.pitch),
+            Math.cos(fps.pitch) * Math.sin(fps.yaw));
+        var up = new THREE.Vector3(0, 1, 0);
+        fps.right = fps.front.clone().cross(up);
+        scene.camera.lookAt(scene.camera.position.clone().add(fps.front));
     }
 
     // Frames
