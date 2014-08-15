@@ -84,6 +84,10 @@ body {
     overflow-y: scroll;
 }
 
+.monospace {
+    font-family: "Lucida Console", Monaco, monospace;
+}
+
 #help-modal .modal-dialog {
     width: 50%;
 }

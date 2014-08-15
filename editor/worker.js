@@ -67,15 +67,14 @@ function clear() {
     });
 }
 
-function setCamera(angle, elevation, radius, x, y, z) {
+function setCamera(x, y, z, yaw, pitch) {
     _postMessage({
         command: "set camera",
-        angle: angle,
-        elevation: elevation,
-        radius: radius,
         x: x,
         y: y,
-        z: z
+        z: z,
+        yaw: yaw,
+        pitch: pitch
     });
 }
 

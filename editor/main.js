@@ -61,6 +61,7 @@
 
         // View
         document.getElementById("center-button").addEventListener("click", onViewCenterButton, false);
+        document.getElementById("view-get-camera-button").addEventListener("click", onViewGetCameraButton, false);
 
         // Menubar
         document.getElementById("run-button").addEventListener("click", onRunButton, false);
@@ -110,6 +111,7 @@
 
     function animate() {
         handleQueue();
+        handleKeys();
         scene.light.position = scene.camera.position.clone();
         scene.render();
         requestAnimationFrame(animate);
@@ -159,11 +161,13 @@
     }
 
     function onMouseMove(e) {
-        var dx = e.webkitMovementX;
-        var dy = e.webkitMovementY;
-        fps.pitch -= dy * 0.001;
-        fps.yaw += dx * 0.001;
-        updateCameraVectors();
+        if (isPointerLocked()) {
+            var dx = e.webkitMovementX;
+            var dy = e.webkitMovementY;
+            fps.pitch -= dy * 0.001;
+            fps.yaw += dx * 0.001;
+            updateCamera();
+        }
     }
 
     // Keyboard
@@ -173,11 +177,31 @@
         return KeyboardJS.activeKeys().indexOf(key) >= 0 ? true : false;
     }
 
-    var camSpeed = 0.01;
 
     function handleKeys() {
-        if (keyDown('w')) {
-            camera.position.add(fps.front.clone().multiplyScalar(camSpeed));
+        if (isPointerLocked()) {
+            var camSpeed = 0.1;
+            if (keyDown('shift')) {
+                camSpeed *= 10;
+            }
+            if (keyDown('w')) {
+                scene.camera.position.add(fps.front.clone().multiplyScalar(camSpeed));
+            }
+            if (keyDown('s')) {
+                scene.camera.position.add(fps.front.clone().multiplyScalar(-camSpeed));
+            }
+            if (keyDown('d')) {
+                scene.camera.position.add(fps.right.clone().multiplyScalar(camSpeed));
+            }
+            if (keyDown('a')) {
+                scene.camera.position.add(fps.right.clone().multiplyScalar(-camSpeed));
+            }
+            if (keyDown('e')) {
+                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(camSpeed));
+            }
+            if (keyDown('q')) {
+                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(-camSpeed));
+            }
         }
     }
 
@@ -202,7 +226,10 @@
         while (queue.length() > 0 && count < max) {
             var msg = queue.shift();
             if (msg.command == "set camera") {
-                // XXX: handle setting camera from worker.
+                scene.camera.position.set(msg.x, msg.y, msg.z);
+                fps.pitch = msg.pitch;
+                fps.yaw = msg.yaw;
+                updateCamera();
             } else if (msg.command == "clear") {
                 brownie.dispose();
                 brownie = new Brownie(scene.getRenderer());
@@ -265,6 +292,7 @@
 
     function initializeScene() {
         scene = new Scene("render-canvas");
+        scene.camera.position.set(0, 4, 0);
         var brownie = new Brownie(scene.getRenderer());
         brownie.rebuild();
         frames[0] = brownie;
@@ -274,22 +302,23 @@
         window.addEventListener("mousemove", onMouseMove, false);
         window.addEventListener("resize", reflow, false);
         fps = {
-            pitch: 0,
+            pitch: -Math.PI/4,
             yaw: -Math.PI/2,
             front: new THREE.Vector3(),
-            right: new THREE.Vector3(),
-            locked: false
+            right: new THREE.Vector3()
         };
-        updateCameraVectors();
-        PointerLock.onChange(function() {
-            fps.locked = !fps.locked;
-        });
+        updateCamera();
         sceneCanvas.oncontextmenu = function() {
             return false
         };
     }
 
-    function updateCameraVectors() {
+    function isPointerLocked() {
+        return PointerLock.element() === sceneCanvas;
+    }
+
+    function updateCamera() {
+        fps.pitch = Math.max(0.999 * -Math.PI / 2, Math.min(0.999 * Math.PI / 2, fps.pitch));
         fps.front.set(
             Math.cos(fps.pitch) * Math.cos(fps.yaw),
             Math.sin(fps.pitch),
@@ -394,7 +423,19 @@
 
     function onViewCenterButton() {
         var c = frames[frame].getCentroid();
-        // XXX: do center
+        var b = frames[frame].getBounds();
+        var z = Math.max(b.max.x - c.x, c.x - b.min.x) / Math.tan(75);
+        scene.camera.position.set(c.x, c.y, c.z - z);
+        fps.pitch = 0;
+        fps.yaw = -Math.PI/2;
+        updateCamera();
+    }
+
+    function onViewGetCameraButton() {
+        var div = document.getElementById("get-camera-modal-body");
+        div.innerHTML = sprintf("setCamera(%.3f, %.3f, %.3f, %.3f, %.3f);", 
+            scene.camera.position.x, scene.camera.position.y, scene.camera.position.z, fps.yaw, fps.pitch);
+        $("#get-camera-modal").modal("show");
     }
 
     // Run 
