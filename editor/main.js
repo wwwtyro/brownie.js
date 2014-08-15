@@ -24,14 +24,11 @@
     // Globals.
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-    var scene;
-    var frames = [];
-    var frame = 0;
+    var scene, sceneCanvas, fps;
+    var frames = [], frame = 0;
     var worker;
     var editor;
-    var trackball;
     var currentProgramName = "untitled";
-    var spin = true;
     var queue = new QueueBug();
 
     // General.
@@ -60,11 +57,11 @@
         // Model
         document.getElementById("clear-button").addEventListener("click", onModelClearButton, false);
         document.getElementById("export-voxels-button").addEventListener("click", onModelExportVoxelsButton, false);
+        document.getElementById("export-voxels-saveas-button").addEventListener("click", onModelExportVoxelsSaveButton, false);
 
         // View
-        document.getElementById("spin-button").addEventListener("click", onViewSpinButton, false);
         document.getElementById("center-button").addEventListener("click", onViewCenterButton, false);
-        document.getElementById("export-voxels-saveas-button").addEventListener("click", onModelExportVoxelsSaveButton, false);
+        document.getElementById("view-get-camera-button").addEventListener("click", onViewGetCameraButton, false);
 
         // Menubar
         document.getElementById("run-button").addEventListener("click", onRunButton, false);
@@ -72,7 +69,6 @@
         // Frames
         document.getElementById("frame-step-left-button").addEventListener("click", onFrameStepLeftButton, false);
         document.getElementById("frame-step-right-button").addEventListener("click", onFrameStepRightButton, false);
-
     }
 
     function loadExamplesIndex() {
@@ -100,12 +96,6 @@
         });
     }
 
-    function initializeSaves() {
-        if (localStorage.programs === undefined) {
-            localStorage.programs = JSON.stringify({});
-        }
-    }
-
     function fadeOutCover() {
         setTimeout(function() {
             $("#cover").fadeOut(500);
@@ -121,9 +111,7 @@
 
     function animate() {
         handleQueue();
-        if (spin) {
-            scene.camera.angle += 0.01;
-        }
+        handleKeys();
         scene.light.position = scene.camera.position.clone();
         scene.render();
         requestAnimationFrame(animate);
@@ -156,28 +144,64 @@
         document.getElementById("current-program-name").innerHTML = programName;
     }
 
+    function initializeSaves() {
+        if (localStorage.programs === undefined) {
+            localStorage.programs = JSON.stringify({});
+        }
+    }
+
     // Mouse
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
+    function onMouseDown(e) {
+        PointerLock.requestFor(sceneCanvas);
+    }
+
     function onMouseWheel(e) {
-        scene.camera.radius *= e.deltaY > 0 ? 1.1 : 0.9;
-        scene.camera.radius = Math.max(1, scene.camera.radius);
     }
 
     function onMouseMove(e) {
-        if (e.button == 0) {
-            scene.camera.elevation += e.dy * 0.0025;
-            scene.camera.angle += e.dx * 0.0025;
-            scene.camera.elevation = Math.max(-0.99 * Math.PI / 2, Math.min(0.99 * Math.PI / 2, scene.camera.elevation));
-            return;
+        if (isPointerLocked()) {
+            var dx = e.webkitMovementX;
+            var dy = e.webkitMovementY;
+            fps.pitch -= dy * 0.001;
+            fps.yaw += dx * 0.001;
+            updateCamera();
         }
-        if (e.button == 2) {
-            var forward = new THREE.Vector3(Math.cos(scene.camera.angle), 0, Math.sin(scene.camera.angle));
-            forward.normalize();
-            var right = new THREE.Vector3(Math.cos(scene.camera.angle + Math.PI / 2), 0, Math.sin(scene.camera.angle + Math.PI / 2));
-            right.normalize();
-            scene.camera.translation.add(right.clone().multiplyScalar(e.dx * 0.001 * scene.camera.radius));
-            scene.camera.translation.add(forward.clone().multiplyScalar(-e.dy * 0.001 * scene.camera.radius));
+    }
+
+    // Keyboard
+    // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
+
+    function keyDown(key) {
+        return KeyboardJS.activeKeys().indexOf(key) >= 0 ? true : false;
+    }
+
+
+    function handleKeys() {
+        if (isPointerLocked()) {
+            var camSpeed = 0.1;
+            if (keyDown('shift')) {
+                camSpeed *= 10;
+            }
+            if (keyDown('w')) {
+                scene.camera.position.add(fps.front.clone().multiplyScalar(camSpeed));
+            }
+            if (keyDown('s')) {
+                scene.camera.position.add(fps.front.clone().multiplyScalar(-camSpeed));
+            }
+            if (keyDown('d')) {
+                scene.camera.position.add(fps.right.clone().multiplyScalar(camSpeed));
+            }
+            if (keyDown('a')) {
+                scene.camera.position.add(fps.right.clone().multiplyScalar(-camSpeed));
+            }
+            if (keyDown('e')) {
+                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(camSpeed));
+            }
+            if (keyDown('q')) {
+                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(-camSpeed));
+            }
         }
     }
 
@@ -202,7 +226,10 @@
         while (queue.length() > 0 && count < max) {
             var msg = queue.shift();
             if (msg.command == "set camera") {
-                scene.setCamera(msg.angle, msg.elevation, msg.radius, msg.x, msg.y, msg.z);
+                scene.camera.position.set(msg.x, msg.y, msg.z);
+                fps.pitch = msg.pitch;
+                fps.yaw = msg.yaw;
+                updateCamera();
             } else if (msg.command == "clear") {
                 brownie.dispose();
                 brownie = new Brownie(scene.getRenderer());
@@ -265,17 +292,40 @@
 
     function initializeScene() {
         scene = new Scene("render-canvas");
+        scene.camera.position.set(0, 4, 0);
         var brownie = new Brownie(scene.getRenderer());
         brownie.rebuild();
         frames[0] = brownie;
         scene.setBrownie(brownie);
-        var sceneCanvas = document.getElementById("render-canvas");
-        trackball = new Trackball(sceneCanvas, onMouseMove);
-        sceneCanvas.addEventListener("wheel", onMouseWheel, false);
+        sceneCanvas = document.getElementById("render-canvas");
+        sceneCanvas.addEventListener("mousedown", onMouseDown, false);
+        window.addEventListener("mousemove", onMouseMove, false);
         window.addEventListener("resize", reflow, false);
+        fps = {
+            pitch: -Math.PI/4,
+            yaw: -Math.PI/2,
+            front: new THREE.Vector3(),
+            right: new THREE.Vector3()
+        };
+        updateCamera();
         sceneCanvas.oncontextmenu = function() {
             return false
         };
+    }
+
+    function isPointerLocked() {
+        return PointerLock.element() === sceneCanvas;
+    }
+
+    function updateCamera() {
+        fps.pitch = Math.max(0.999 * -Math.PI / 2, Math.min(0.999 * Math.PI / 2, fps.pitch));
+        fps.front.set(
+            Math.cos(fps.pitch) * Math.cos(fps.yaw),
+            Math.sin(fps.pitch),
+            Math.cos(fps.pitch) * Math.sin(fps.yaw));
+        var up = new THREE.Vector3(0, 1, 0);
+        fps.right = fps.front.clone().cross(up);
+        scene.camera.lookAt(scene.camera.position.clone().add(fps.front));
     }
 
     // Frames
@@ -371,13 +421,21 @@
 
     // View 
 
-    function onViewSpinButton() {
-        spin = !spin;
-    }
-
     function onViewCenterButton() {
         var c = frames[frame].getCentroid();
-        scene.camera.translation.set(c.x, c.y, c.z);
+        var b = frames[frame].getBounds();
+        var z = Math.max(b.max.x - c.x, c.x - b.min.x) / Math.tan(75);
+        scene.camera.position.set(c.x, c.y, c.z - z);
+        fps.pitch = 0;
+        fps.yaw = -Math.PI/2;
+        updateCamera();
+    }
+
+    function onViewGetCameraButton() {
+        var div = document.getElementById("get-camera-modal-body");
+        div.innerHTML = sprintf("setCamera(%.3f, %.3f, %.3f, %.3f, %.3f);", 
+            scene.camera.position.x, scene.camera.position.y, scene.camera.position.z, fps.yaw, fps.pitch);
+        $("#get-camera-modal").modal("show");
     }
 
     // Run 

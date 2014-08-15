@@ -8,7 +8,7 @@ var leafLife = 2;
 var leafCount = 32;
 
 clear();
-setCamera(0, 0.028, 120, 0, 64, 0);
+setCamera(11.500, 65.500, 118.784, -1.571, -0.000);
 
 function clamp(a) {
     return Math.min(1, Math.max(-1, a));

@@ -2,8 +2,7 @@
 var radius = 10;
 
 clear();
-setCamera(0, 0.713, 27.45, radius, radius, radius);
-
+setCamera(23.645, 29.900, 29.773, -2.167, -0.668);
 
 for (var x = 0; x < radius * 2; x++) {
     for (var y = 0; y < radius * 2; y++) {

@@ -7,11 +7,11 @@
     <script src="third-party/FileSaver.js"></script>
     <script src="third-party/three.js"></script>
     <script src="third-party/ace/ace.js"></script>
-
+    <script src="third-party/keyboard.js"></script>
     <script src="third-party/bootstrap/js/bootstrap.min.js"></script>
 
     <script src="../build/brownie.js"></script>
-    <script src="trackball.js"></script>
+    <script src="pointerlock.js"></script>
     <script src="queuebug.js"></script>
     <script src="scene.js"></script>
     <script src="main.js"></script>
@@ -79,7 +79,7 @@
                                         <button type="button" class="btn btn-link" id="center-button">Center</button>
                                     </li>
                                     <li>
-                                        <button type="button" class="btn btn-link" id="spin-button">Toggle spin</button>
+                                        <button type="button" class="btn btn-link" id="view-get-camera-button">Get camera pose</button>
                                     </li>
                                 </ul>
                             </li>
@@ -128,6 +128,7 @@
             </div>
         </div>
 
+
         <div class="modal fade" id="export-modal">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -158,6 +159,7 @@
             </div>
         </div>
 
+
         <div class="modal fade" id="saveas-modal">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -183,6 +185,7 @@
             </div>
         </div>
 
+
         <div class="modal fade" id="open-modal">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -201,6 +204,7 @@
             </div>
         </div>
 
+
         <div class="modal fade" id="help-modal">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -218,7 +222,26 @@
             </div>
         </div>
 
+        <div class="modal fade" id="get-camera-modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Camera pose</h4>
+                    </div>
+                    <div class="modal-body monospace" id="get-camera-modal-body"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <div id="cover"></div>
+
 
     </body>
 
