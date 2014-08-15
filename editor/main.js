@@ -25,7 +25,8 @@
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     var scene, sceneCanvas, fps;
-    var frames = [], frame = 0;
+    var frames = [],
+        frame = 0;
     var worker;
     var editor;
     var currentProgramName = "untitled";
@@ -112,6 +113,7 @@
     function animate() {
         handleQueue();
         handleKeys();
+        updatePoint();
         scene.light.position = scene.camera.position.clone();
         scene.render();
         requestAnimationFrame(animate);
@@ -154,11 +156,11 @@
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     function onMouseDown(e) {
+        console.log(getSelectedVoxel());
         PointerLock.requestFor(sceneCanvas);
     }
 
-    function onMouseWheel(e) {
-    }
+    function onMouseWheel(e) {}
 
     function onMouseMove(e) {
         if (isPointerLocked()) {
@@ -197,10 +199,10 @@
                 scene.camera.position.add(fps.right.clone().multiplyScalar(-camSpeed));
             }
             if (keyDown('e')) {
-                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(camSpeed));
+                scene.camera.position.add(new THREE.Vector3(0, 1, 0).multiplyScalar(camSpeed));
             }
             if (keyDown('q')) {
-                scene.camera.position.add(new THREE.Vector3(0,1,0).multiplyScalar(-camSpeed));
+                scene.camera.position.add(new THREE.Vector3(0, 1, 0).multiplyScalar(-camSpeed));
             }
         }
     }
@@ -292,7 +294,7 @@
 
     function initializeScene() {
         scene = new Scene("render-canvas");
-        scene.camera.position.set(0, 4, 0);
+        scene.camera.position.set(0, 4, 4);
         var brownie = new Brownie(scene.getRenderer());
         brownie.rebuild();
         frames[0] = brownie;
@@ -302,8 +304,8 @@
         window.addEventListener("mousemove", onMouseMove, false);
         window.addEventListener("resize", reflow, false);
         fps = {
-            pitch: -Math.PI/4,
-            yaw: -Math.PI/2,
+            pitch: -Math.PI / 4,
+            yaw: -Math.PI / 2,
             front: new THREE.Vector3(),
             right: new THREE.Vector3()
         };
@@ -326,6 +328,31 @@
         var up = new THREE.Vector3(0, 1, 0);
         fps.right = fps.front.clone().cross(up);
         scene.camera.lookAt(scene.camera.position.clone().add(fps.front));
+    }
+
+    function getSelectedVoxel() {
+        var rayList = castRay(scene.camera.position.clone(), fps.front.clone(), 128);
+        var voxels = rayList.voxels;
+        var points = rayList.points;
+        for (var i = 0; i < voxels.length; i++) {
+            var v = voxels[i];
+            if (frames[frame].get(v[0], v[1], v[2]) || v[1] < 0) {
+                return {
+                    voxel: voxels[i],
+                    point: points[i]
+                };
+            }
+        }
+        return undefined;
+    }
+
+    function updatePoint() {
+        scene.scene.remove(scene.point);
+        var b = getSelectedVoxel();
+        if (b) {
+            scene.point.position.set(b.point[0], b.point[1], b.point[2]);
+            scene.scene.add(scene.point);
+        }
     }
 
     // Frames
@@ -427,13 +454,13 @@
         var z = Math.max(b.max.x - c.x, c.x - b.min.x) / Math.tan(75);
         scene.camera.position.set(c.x, c.y, c.z - z);
         fps.pitch = 0;
-        fps.yaw = -Math.PI/2;
+        fps.yaw = -Math.PI / 2;
         updateCamera();
     }
 
     function onViewGetCameraButton() {
         var div = document.getElementById("get-camera-modal-body");
-        div.innerHTML = sprintf("setCamera(%.3f, %.3f, %.3f, %.3f, %.3f);", 
+        div.innerHTML = sprintf("setCamera(%.3f, %.3f, %.3f, %.3f, %.3f);",
             scene.camera.position.x, scene.camera.position.y, scene.camera.position.z, fps.yaw, fps.pitch);
         $("#get-camera-modal").modal("show");
     }

@@ -19,6 +19,7 @@ var Scene = function(canvasID) {
         self.brownie = null;
         self.mesh = null;
         self.board = null
+        self.point = null;
         self.initializeRenderer();
         self.initializeScene();
     }
@@ -56,6 +57,15 @@ var Scene = function(canvasID) {
         });
         self.light.position.set(10, 10, 20);
         self.scene.add(self.light);
+        // Point
+        var g = new THREE.IcosahedronGeometry(0.05, 3);
+        var m = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.5
+        });
+        self.point = new THREE.Mesh(g, m);
+        self.scene.add(self.point);
     }
 
     self.setBrownie = function(brownie) {

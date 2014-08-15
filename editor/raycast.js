@@ -3,9 +3,14 @@ function sign(x) {
 }
 
 function castRay(eye, ray, count) {
+
     "use strict";
 
     ray = ray.clone().normalize();
+
+    ray.x = ray.x == 0 ? 0.000000001 : ray.x;
+    ray.y = ray.y == 0 ? 0.000000001 : ray.y;
+    ray.z = ray.z == 0 ? 0.000000001 : ray.z;
 
     var X = Math.floor(eye.x);
     var Y = Math.floor(eye.y);
@@ -29,29 +34,44 @@ function castRay(eye, ray, count) {
     var tDeltaY = 1 / Math.abs(ray.y);
     var tDeltaZ = 1 / Math.abs(ray.z);
 
-    var list = [
+    var voxelList = [
         [X, Y, Z]
+    ];
+
+    var tMin = Math.min(tMaxX, tMaxY, tMaxZ);
+    var pointList = [
+        [tMin * ray.x + eye.x, tMin * ray.y + eye.y, tMin * ray.z + eye.z]
     ];
 
     for (var i = 0; i < count - 1; i++) {
         if (tMaxX < tMaxY) {
             if (tMaxX < tMaxZ) {
+                tMin = tMaxX;
                 X = X + stepX;
                 tMaxX = tMaxX + tDeltaX;
             } else {
+                tMin = tMaxZ;
                 Z = Z + stepZ;
                 tMaxZ = tMaxZ + tDeltaZ;
             }
         } else {
             if (tMaxY < tMaxZ) {
+                tMin = tMaxY;
                 Y = Y + stepY;
                 tMaxY = tMaxY + tDeltaY;
             } else {
+                tMin = tMaxZ;
                 Z = Z + stepZ;
                 tMaxZ = tMaxZ + tDeltaZ;
             }
         }
-        list.push([X, Y, Z]);
+        voxelList.push([X, Y, Z]);
+        pointList.push([tMin * ray.x + eye.x, tMin * ray.y + eye.y, tMin * ray.z + eye.z]);
     }
-    return list;
+
+    return {
+        voxels: voxelList,
+        points: pointList
+    };
+
 }
