@@ -156,7 +156,6 @@
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     function onMouseDown(e) {
-        console.log(getSelectedVoxel());
         PointerLock.requestFor(sceneCanvas);
     }
 
