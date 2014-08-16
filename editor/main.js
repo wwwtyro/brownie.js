@@ -367,7 +367,8 @@
         var b = getSelectedVoxel();
         if (b) {
             if (b.prior) {
-                frames[frame].set(b.prior[0], b.prior[1], b.prior[2], 1, 1, 1);
+                var c = getColor();
+                frames[frame].set(b.prior[0], b.prior[1], b.prior[2], c.r, c.g, c.b);
                 frames[frame].rebuild();
             }
         }
@@ -381,6 +382,15 @@
                 frames[frame].rebuild();
             }
         }
+    }
+
+    function getColor() {
+        var c = parseInt(document.getElementById("color-picker").value.replace("#", ""), 16);
+        return {
+            r: ((c & 0xff0000) >> 16) / 255,
+            g: ((c & 0x00ff00) >>  8) / 255,
+            b: (c & 0x0000ff) / 255
+        };
     }
 
     // Frames
