@@ -156,7 +156,15 @@
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
     function onMouseDown(e) {
-        PointerLock.requestFor(sceneCanvas);
+        if (!isPointerLocked()) {
+            PointerLock.requestFor(sceneCanvas);
+        } else {
+            if (e.button == 0) {
+                placeVoxel();
+            } else if (e.button == 2) {
+                removeVoxel();
+            }
+        }
     }
 
     function onMouseWheel(e) {}
@@ -323,9 +331,9 @@
         fps.front.set(
             Math.cos(fps.pitch) * Math.cos(fps.yaw),
             Math.sin(fps.pitch),
-            Math.cos(fps.pitch) * Math.sin(fps.yaw));
+            Math.cos(fps.pitch) * Math.sin(fps.yaw)).normalize();
         var up = new THREE.Vector3(0, 1, 0);
-        fps.right = fps.front.clone().cross(up);
+        fps.right = fps.front.clone().cross(up).normalize();
         scene.camera.lookAt(scene.camera.position.clone().add(fps.front));
     }
 
@@ -338,7 +346,8 @@
             if (frames[frame].get(v[0], v[1], v[2]) || v[1] < 0) {
                 return {
                     voxel: voxels[i],
-                    point: points[i]
+                    point: points[i],
+                    prior: voxels[i - 1]
                 };
             }
         }
@@ -351,6 +360,26 @@
         if (b) {
             scene.point.position.set(b.point[0], b.point[1], b.point[2]);
             scene.scene.add(scene.point);
+        }
+    }
+
+    function placeVoxel() {
+        var b = getSelectedVoxel();
+        if (b) {
+            if (b.prior) {
+                frames[frame].set(b.prior[0], b.prior[1], b.prior[2], 1, 1, 1);
+                frames[frame].rebuild();
+            }
+        }
+    }
+
+    function removeVoxel() {
+        var b = getSelectedVoxel();
+        if (b) {
+            if (b.voxel[1] >= 0) {
+                frames[frame].unset(b.voxel[0], b.voxel[1], b.voxel[2]);
+                frames[frame].rebuild();
+            }
         }
     }
 
