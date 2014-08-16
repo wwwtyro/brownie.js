@@ -15,6 +15,16 @@
 
         Store the state of the editor better - save state, program name, etc.
 
+        Use Gist API to share programs.
+
+        Use Gist API to share brownies? (Length limit issue?)
+
+        Save/load brownies from binary blob.
+
+        Save/load brownies from b64 string?
+
+        **** Add x,y,z indicator to the crosshairs.
+        
 */
 
 (function() {
@@ -26,7 +36,8 @@
 
     var scene, sceneCanvas, fps;
     var frames = [],
-        frame = 0;
+        frame = 0,
+        play = false;
     var worker;
     var editor;
     var currentProgramName = "untitled";
@@ -69,7 +80,11 @@
 
         // Frames
         document.getElementById("frame-step-left-button").addEventListener("click", onFrameStepLeftButton, false);
+        document.getElementById("frame-play-button").addEventListener("click", onFramePlayButton, false);
+        document.getElementById("frame-pause-button").addEventListener("click", onFramePauseButton, false);
         document.getElementById("frame-step-right-button").addEventListener("click", onFrameStepRightButton, false);
+        document.getElementById("frame-insert-button").addEventListener("click", onFramePlusButton, false);
+        document.getElementById("frame-delete-button").addEventListener("click", onFrameDeleteButton, false);
     }
 
     function loadExamplesIndex() {
@@ -84,7 +99,7 @@
             for (var i in index.examples) {
                 var example = index.examples[i];
                 (function(e) {
-                    // Dont do this - these eventlisteners might hang around. Should just have a list of names and an open button.
+                    // Don't do this - these eventlisteners might hang around. Should just have a list of names and an open button.
                     document.getElementById(sprintf("example-select-%s", e)).addEventListener("click", function() {
                         $.get(sprintf("examples/%s.js", e), function(data) {
                             editor.setValue(data, -1);
@@ -111,6 +126,9 @@
     }
 
     function animate() {
+        if (play) {
+            nextFrame();
+        }
         handleQueue();
         handleKeys();
         updatePoint();
@@ -251,10 +269,14 @@
                 brownie.unset(msg.x, msg.y, msg.z);
                 rebuild[frame] = true;
             } else if (msg.command == "add frame") {
-                addFrame();
+                appendFrame();
             } else if (msg.command == "set frame") {
                 setFrame(msg.n);
                 brownie = frames[msg.n];
+            } else if (msg.command == "play") {
+                play = true;
+            } else if (msg.command == "pause") {
+                play = false;
             }
             count++;
         }
@@ -388,7 +410,7 @@
         var c = parseInt(document.getElementById("color-picker").value.replace("#", ""), 16);
         return {
             r: ((c & 0xff0000) >> 16) / 255,
-            g: ((c & 0x00ff00) >>  8) / 255,
+            g: ((c & 0x00ff00) >> 8) / 255,
             b: (c & 0x0000ff) / 255
         };
     }
@@ -396,10 +418,18 @@
     // Frames
     // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = 
 
-    function addFrame() {
+    function insertFrame(index) {
         var brownie = new Brownie(scene.getRenderer());
         brownie.rebuild();
-        frames.push(brownie);
+        frames.splice(index, 0, brownie);
+    }
+
+    function deleteFrame(index) {
+        frames.splice(index, 1);
+    }
+
+    function appendFrame() {
+        insertFrame(frames.length);
     }
 
     function setFrame(n) {
@@ -414,6 +444,14 @@
             json.push(frames[i].toJSON());
         }
         return JSON.stringify(json);
+    }
+
+    function nextFrame() {
+        var targetFrame = frame + 1;
+        if (targetFrame >= frames.length) {
+            targetFrame = 0
+        }
+        setFrame(targetFrame);
     }
 
     // Menu/UI
@@ -451,7 +489,7 @@
         div.innerHTML = content;
         for (var programName in programs) {
             (function(n) {
-                // Dont do this - these eventlisteners might hang around. Should just have a list of names and an open button.
+                // Don't do this - these eventlisteners might hang around. Should just have a list of names and an open button.
                 document.getElementById(sprintf("open-select-%s", n)).addEventListener("click", function() {
                     openProgram(n);
                     setCurrentProgramName(n);
@@ -528,6 +566,33 @@
             targetFrame = 0;
         }
         setFrame(targetFrame);
+    }
+
+    function onFramePlusButton() {
+        insertFrame(frame + 1);
+        setFrame(frame + 1);
+        frames[frame].fromJSON(frames[frame - 1].toJSON());
+        frames[frame].rebuild();
+    }
+
+    function onFrameDeleteButton() {
+        if (frames.length == 1) {
+            return;
+        }
+        deleteFrame(frame);
+        var targetFrame = frame;
+        if (targetFrame >= frames.length) {
+            targetFrame--;
+        }
+        setFrame(targetFrame);
+    }
+
+    function onFramePlayButton() {
+        play = true;
+    }
+
+    function onFramePauseButton() {
+        play = false;
     }
 
 })();

@@ -93,6 +93,18 @@ function setFrame(n) {
     });
 }
 
+function play() {
+    _postMessage({
+        command: "play"
+    });
+}
+
+function pause() {
+    _postMessage({
+        command: "play"
+    });
+}
+
 onmessage = function(e) {
     var msg = e.data;
     if (msg.command == "run") {
