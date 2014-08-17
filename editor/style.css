@@ -124,3 +124,11 @@ body {
     width: 16px;
     height: 16px;
 }
+
+#frame-number {
+    margin-left: 16px;
+}
+
+#voxel-coordinate {
+    margin-left: 16px;
+}

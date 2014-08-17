@@ -23,8 +23,8 @@
 
         Save/load brownies from b64 string?
 
-        **** Add x,y,z indicator to the crosshairs.
-        
+        Swap play/pause glyphicons instead of showing both.
+
 */
 
 (function() {
@@ -382,6 +382,8 @@
         if (b) {
             scene.point.position.set(b.point[0], b.point[1], b.point[2]);
             scene.scene.add(scene.point);
+            var coordinate = sprintf("Voxel: %d %d %d", b.voxel[0], b.voxel[1], b.voxel[2]);
+            document.getElementById("voxel-coordinate").innerHTML = coordinate;
         }
     }
 
