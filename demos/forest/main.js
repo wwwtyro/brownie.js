@@ -1,6 +1,6 @@
 "use strict";
 
-var scene, dummy, camera, renderer, player;
+var scene, dummy, camera, renderer, player, light;
 var brownieManager, field;
 
 var BrownieManager = function(renderer) {
@@ -87,23 +87,21 @@ window.onload = function() {
     dummy = new THREE.Object3D();
     scene.add(dummy);
 
-    var g = new THREE.IcosahedronGeometry(0.25, 3);
-    var m = new THREE.MeshBasicMaterial({
-        color: 0x00ffff
-    });
-    player = new THREE.Mesh(g, m);
-    player.position.set(0, 16, 0);
-    scene.add(player);
+    player = {
+        position: new THREE.Vector3(),
+        rotation: new THREE.Vector3(),
+        states: [0,1,0,2],
+        stateIndex: 0
+    };
 
-    player.v = new THREE.Vector3();
-
-    var light = new THREE.PointLight(0xffffff, 1, 8 * 16);
-    player.add(light);
+    light = new THREE.PointLight(0xffffff, 1, 8*16);
+    scene.add(light);
 
     brownieManager = new BrownieManager(renderer);
 
     brownieManager.loadBrownie("trees.json");
     brownieManager.loadBrownie("grasses.json");
+    brownieManager.loadBrownie("vman.json");
 
     field = {};
 
@@ -192,35 +190,47 @@ function drawScene() {
             }
         }
     }
+    var m = brownieManager.getMesh("vman.json", player.states[player.stateIndex]);
+    m.position = player.position.clone();
+    m.rotation.set(player.rotation.x, player.rotation.y, player.rotation.z);
+    dummy.add(m);
 }
 
 function keyOn(key) {
     return _.contains(KeyboardJS.activeKeys(), key)
 }
 
-var speed = 0.1;
-
+var speed = 0.5;
+var tick = 0;
 function updatePlayerPosition() {
+    var moving = false;
     if (keyOn('up') || keyOn('w')) {
-        player.v.z -= speed;
+        player.position.z -= speed;
+        player.rotation.y = 0;
+        moving = true;
+    } else if (keyOn('down') || keyOn('s')) {
+        player.position.z += speed;
+        player.rotation.y = Math.PI;
+        moving = true;
+    } else if (keyOn('left') || keyOn('a')) {
+        player.position.x -= speed;
+        player.rotation.y = Math.PI/2;
+        moving = true;
+    } else if (keyOn('right') || keyOn('d')) {
+        player.position.x += speed;
+        player.rotation.y = -Math.PI/2;
+        moving = true;
     }
-    if (keyOn('down') || keyOn('s')) {
-        player.v.z += speed;
-    }
-    if (keyOn('left') || keyOn('a')) {
-        player.v.x -= speed;
-    }
-    if (keyOn('right') || keyOn('d')) {
-        player.v.x += speed;
-    }
-    player.position.y = Math.sin(tick * 0.1) * 1 + 16;
-    player.position.add(player.v)
-    player.v.multiplyScalar(0.9);
-    if (player.v.length() > 0.001) {
-        document.getElementById("help").style.visibility = "hidden";
+    if (moving) {
+        tick = ++tick % 5;
+        if (tick == 0) {
+            player.stateIndex = ++player.stateIndex % player.states.length;
+        }
     } else {
-        document.getElementById("help").style.visibility = "visible";
+        player.stateIndex = 0;
     }
+    player.position.y = 1;
+    light.position = player.position.clone().add(new THREE.Vector3(0, 1 * 16, 0));
 }
 
 function updateHelp() {
@@ -233,20 +243,18 @@ function updateHelp() {
 
 }
 
-var tick = 0;
 
 function animate() {
-    tick++;
     updateHelp();
-    updatePlayerPosition();
-    var targetPos = player.position.clone();
-    targetPos.y = 16;
-    camera.position.add(targetPos.clone().add(new THREE.Vector3(0, 48, 48)).sub(camera.position.clone()).multiplyScalar(0.1));
-    camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, -48, -48)));
     if (brownieManager.allLoaded()) {
+        updatePlayerPosition();
+        var targetPos = player.position.clone();
+        targetPos.y = 16;
+        camera.position.add(targetPos.clone().add(new THREE.Vector3(0, 48, 48)).sub(camera.position.clone()).multiplyScalar(0.1));
+        camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, -48, -48)));
         clearScene();
         drawScene();
+        renderer.render(scene, camera);
     }
-    renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }

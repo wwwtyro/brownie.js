@@ -25,6 +25,8 @@
 
         Swap play/pause glyphicons instead of showing both.
 
+        Import voxels.
+
 */
 
 (function() {
