@@ -236,6 +236,7 @@ var QuadManager = function() {
     };
 
     self.toJSON = function() {
+        // XXX: should return a json string, not an object.
         var positions = [];
         var normals = [];
         var colors = [];

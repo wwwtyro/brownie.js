@@ -27,6 +27,8 @@ var BrownieManager = function(renderer) {
             for (var i = 0; i < json.length; i++) {
                 var b = new Brownie(renderer);
                 b.fromJSON(json[i]);
+                b.centroid = b.getCentroid();
+                b.bounds = b.getBounds();
                 b.rebuild();
                 self.brownies[url].brownies.push(b);
                 self.brownies[url].pools.push([]);
@@ -50,11 +52,27 @@ var BrownieManager = function(renderer) {
 
     self.getMesh = function(url, index) {
         if (self.brownies[url].pools[index].length == 0) {
-            console.log("new mesh");
-            var mesh = new THREE.Mesh(self.getBrownie(url, index).getGeometry(), self.brownieMaterial);
-            mesh.brownieURL = url;
-            mesh.brownieIndex = index;
-            return mesh;
+            var b = self.getBrownie(url, index);
+            var mesh = new THREE.Mesh(b.getGeometry(), self.brownieMaterial);
+            mesh.position.x -= b.centroid.x;
+            mesh.position.set(-b.centroid.x, -b.centroid.y, -b.centroid.z);
+            var pivot = new THREE.Object3D();
+            pivot.bounds = {
+                min: {
+                    x: b.bounds.min.x - b.centroid.x,
+                    y: b.bounds.min.y - b.centroid.y,
+                    z: b.bounds.min.z - b.centroid.z
+                },
+                max: {
+                    x: b.bounds.max.x - b.centroid.x,
+                    y: b.bounds.max.y - b.centroid.y,
+                    z: b.bounds.max.z - b.centroid.z
+                }
+            };
+            pivot.add(mesh);
+            pivot.brownieURL = url;
+            pivot.brownieIndex = index;
+            return pivot;
         } else {
             return self.brownies[url].pools[index].pop();
         }
@@ -134,7 +152,7 @@ function getPlot(x, z) {
             }
         })
         if (Math.random() < 0.1) {
-            var scale = Math.random() * 0.5 + 0.5;
+            var scale = Math.random() * 1.9 + 0.1;
             brownies.push({
                 url: "trees.json",
                 index: Math.floor(Math.random() * 5),
@@ -181,7 +199,7 @@ function drawScene() {
             for (var i in plots) {
                 var plot = plots[i];
                 var m = brownieManager.getMesh(plot.url, plot.index);
-                m.position.set(x * 16, 0, z * 16);
+                m.position.set(x * 16, -m.bounds.min.y * plot.scale.y, z * 16);
                 m.rotation.set(plot.rotation.x, plot.rotation.y, plot.rotation.z);
                 if (plot.scale) {
                     m.scale.set(plot.scale.x, plot.scale.y, plot.scale.z);
@@ -192,6 +210,8 @@ function drawScene() {
     }
     var m = brownieManager.getMesh("vman.json", player.states[player.stateIndex]);
     m.position = player.position.clone();
+    m.position.y -= m.bounds.min.y;
+    m.position.y += 1;
     m.rotation.set(player.rotation.x, player.rotation.y, player.rotation.z);
     dummy.add(m);
 }
