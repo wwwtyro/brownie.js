@@ -6,18 +6,18 @@ var VoxelManager = function() {
 
     self.initialize = function() {
         self.voxels = {};
-        self.dirty = [];
+        self.dirty = {};
         self.qm = new QuadManager();
     };
 
     self.markDirty = function(x, y, z) {
-        if (self.voxels[[x + 0, y + 0, z + 0]]) self.dirty.push([x + 0, y + 0, z + 0]);
-        if (self.voxels[[x + 0, y + 1, z + 0]]) self.dirty.push([x + 0, y + 1, z + 0]);
-        if (self.voxels[[x + 0, y - 1, z + 0]]) self.dirty.push([x + 0, y - 1, z + 0]);
-        if (self.voxels[[x + 0, y + 0, z + 1]]) self.dirty.push([x + 0, y + 0, z + 1]);
-        if (self.voxels[[x + 0, y + 0, z - 1]]) self.dirty.push([x + 0, y + 0, z - 1]);
-        if (self.voxels[[x + 1, y + 0, z + 0]]) self.dirty.push([x + 1, y + 0, z + 0]);
-        if (self.voxels[[x - 1, y + 0, z + 0]]) self.dirty.push([x - 1, y + 0, z + 0]);
+        if (self.voxels[[x + 0, y + 0, z + 0]]) self.dirty[[x + 0, y + 0, z + 0]] = [x + 0, y + 0, z + 0];
+        if (self.voxels[[x + 0, y + 1, z + 0]]) self.dirty[[x + 0, y + 1, z + 0]] = [x + 0, y + 1, z + 0];
+        if (self.voxels[[x + 0, y - 1, z + 0]]) self.dirty[[x + 0, y - 1, z + 0]] = [x + 0, y - 1, z + 0];
+        if (self.voxels[[x + 0, y + 0, z + 1]]) self.dirty[[x + 0, y + 0, z + 1]] = [x + 0, y + 0, z + 1];
+        if (self.voxels[[x + 0, y + 0, z - 1]]) self.dirty[[x + 0, y + 0, z - 1]] = [x + 0, y + 0, z - 1];
+        if (self.voxels[[x + 1, y + 0, z + 0]]) self.dirty[[x + 1, y + 0, z + 0]] = [x + 1, y + 0, z + 0];
+        if (self.voxels[[x - 1, y + 0, z + 0]]) self.dirty[[x - 1, y + 0, z + 0]] = [x - 1, y + 0, z + 0];
     };
 
     self.set = function(x, y, z, r, g, b) {
@@ -95,7 +95,7 @@ var VoxelManager = function() {
             if (self.get(v.x + 0, v.y + 1, v.z + 0) == undefined) v.quads.push(self.buildQuad(v, "top"));
             if (self.get(v.x + 0, v.y - 1, v.z + 0) == undefined) v.quads.push(self.buildQuad(v, "bottom"));
         }
-        self.dirty = [];
+        self.dirty = {};
     };
 
     self.getUpdates = function() {
