@@ -1,6 +1,6 @@
 "use strict";
 
-var scene, camera, renderer, light, rock, dummy;
+var scene, camera, renderer, light, rock, dummy, player;
 var size = 8;
 var range = 2;
 
@@ -23,6 +23,13 @@ window.onload = function() {
     light = new THREE.PointLight(0xffffff, 2, size * range);
     light.position = camera.position.clone();
     scene.add(light);
+
+    var g = new THREE.IcosahedronGeometry(0.25, 3);
+    var m = new THREE.MeshBasicMaterial({
+        color: 0xffffff
+    });
+    player = new THREE.Mesh(g, m);
+    scene.add(player);
 
     buildRock();
 
@@ -80,6 +87,7 @@ function getPlot(x, y) {
 }
 
 var meshpool = [];
+
 function getRockMesh() {
     if (meshpool.length === 0) {
         var p = new THREE.Object3D();
@@ -170,15 +178,18 @@ function updatePlayerPosition() {
     if (keyOn('right') || keyOn('d')) {
         camera.position.x += speed;
     }
+    player.position.set(camera.position.x, camera.position.y, 8);
 }
 
+var tick = 0;
+
 function animate() {
+    tick++;
     updatePlayerPosition();
     clearScene();
-    console.log(meshpool.length);
     drawScene();
     light.position = camera.position.clone();
-    light.position.z = 8;
+    light.position.z = 11;
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }
