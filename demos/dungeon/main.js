@@ -1,7 +1,7 @@
 "use strict";
 
 var scene, camera, renderer, light, shadowLight, stage, player;
-var aFloor, aWall, aHuman, aStalagmite;
+var aFloor, aWall, aHuman, aStalagmite, aSpider;
 
 var range = 4;
 
@@ -71,6 +71,10 @@ window.onload = function() {
     aHuman.setInternalAlignment(0, 1, 0);
     aHuman.setInternalScale("y", 0.25);
 
+    aSpider = new Asset(spiderGenerator);
+    aSpider.setInternalAlignment(0, 1, 0);
+    aSpider.setInternalScale("y", 0.125);
+
     window.onresize = onResize;
     animate();
 }
@@ -116,7 +120,9 @@ function drawStage() {
             }
         }
     }
-    stage.blit(aHuman, player.state, tick, player.position, new THREE.Vector3(0, -player.front + Math.PI / 2, 0), new THREE.Vector3(1, 1, 1));
+    // stage.blit(aHuman, player.state, tick, player.position, new THREE.Vector3(0, -player.front + Math.PI / 2, 0), new THREE.Vector3(1, 1, 1));
+    stage.blit(aSpider, player.state, tick, player.position, new THREE.Vector3(0, -player.front, 0), new THREE.Vector3(1, 1, 1));
+    stage.blit(aSpider, "default", 0, new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
 }
 
 function keyOn(key) {
@@ -159,7 +165,7 @@ function animate() {
     if (Math.random() < 0.1) {
         light.targetIntensity = Math.random() + 2;
     }
-    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range)).add(new THREE.Vector3(0, range, 0));
+    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range/2)).add(new THREE.Vector3(0, range/2, 0));
     camera.position.add(cameraTargetPosition.sub(camera.position.clone()).multiplyScalar(0.1));
     camera.lookAt(player.position);
     drawStage();
