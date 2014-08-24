@@ -155,7 +155,7 @@ function animate() {
     shadowLight.position.y = shadowLight.height;
     light.position = player.position.clone();
     light.position.y = shadowLight.height;
-    light.intensity += (light.targetIntensity - light.intensity) * 0.01;
+    light.intensity += (light.targetIntensity - light.intensity) * 0.1;
     if (Math.random() < 0.1) {
         light.targetIntensity = Math.random() + 2;
     }
