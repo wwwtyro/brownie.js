@@ -44,8 +44,8 @@ window.onload = function() {
 
     light = new THREE.PointLight(0xffffff, 2, range);
     light.height = 0.5;
-    light.intensity = Math.random() + 1;
-    light.targetIntensity = Math.random() + 1;
+    light.intensity = Math.random() + 2;
+    light.targetIntensity = Math.random() + 2;
     scene.add(light);
 
     stage = new Stage();
@@ -157,9 +157,9 @@ function animate() {
     light.position.y = shadowLight.height;
     light.intensity += (light.targetIntensity - light.intensity) * 0.01;
     if (Math.random() < 0.1) {
-        light.targetIntensity = Math.random() + 1;
+        light.targetIntensity = Math.random() + 2;
     }
-    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range/2)).add(new THREE.Vector3(0, range/2, 0));
+    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range)).add(new THREE.Vector3(0, range, 0));
     camera.position.add(cameraTargetPosition.sub(camera.position.clone()).multiplyScalar(0.1));
     camera.lookAt(player.position);
     drawStage();
