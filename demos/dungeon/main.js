@@ -2,6 +2,8 @@
 
 var scene, camera, renderer, light, shadowLight, stage, player;
 var aFloor, aWall, aHuman, aStalagmite, aSpider;
+var entities = [];
+var floors = {};
 
 var range = 4;
 
@@ -18,14 +20,13 @@ window.onload = function() {
     });
     renderer.setClearColor(0x000000);
     renderer.shadowMapEnabled = true;
-    // renderer.shadowMapSoft = true;
 
     scene = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
 
     shadowLight = new THREE.SpotLight(0xffffff, 2, 0);
-    shadowLight.angle = Math.PI/2;
+    shadowLight.angle = Math.PI / 2;
     shadowLight.exponent = 0.0;
     shadowLight.castShadow = true;
     shadowLight.shadowMapWidth = 1024;
@@ -33,7 +34,6 @@ window.onload = function() {
     shadowLight.shadowCameraNear = 0.1;
     shadowLight.shadowCameraFar = 10;
     shadowLight.shadowCameraFov = 140;
-    // shadowLight.shadowCameraVisible = true;
     shadowLight.onlyShadow = true;
     shadowLight.shadowBias = 0.0;
     shadowLight.shadowDarkness = 1;
@@ -50,12 +50,6 @@ window.onload = function() {
 
     stage = new Stage();
     scene.add(stage.root);
-
-    player = {
-        position: new THREE.Vector3(0, 0, 0),
-        front: 0,
-        state: "standing"
-    }
 
     aFloor = new Asset(floorAsset);
     aFloor.setInternalAlignment(0, -1, 0);
@@ -74,6 +68,16 @@ window.onload = function() {
     aSpider = new Asset(spiderGenerator);
     aSpider.setInternalAlignment(0, 1, 0);
     aSpider.setInternalScale("y", 0.125);
+
+    player = new Entity(aHuman);
+    player.state = "standing";
+
+    for (var i = -range; i <= range; i++) {
+        for (var j = -range; j <= range; j++) {
+            var floor = new Entity(aFloor);
+            floors[[i, j]] = floor;
+        }
+    }
 
     window.onresize = onResize;
     animate();
@@ -116,13 +120,12 @@ function drawStage() {
             var block = getBlock(x, z);
             for (var i = 0; i < block.length; i++) {
                 var asset = block[i];
-                stage.blit(asset, "default", 0, new THREE.Vector3(x, 0, z), new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
+                // stage.blit(asset, "default", 0, new THREE.Vector3(x, 0, z), new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
             }
         }
     }
-    // stage.blit(aHuman, player.state, tick, player.position, new THREE.Vector3(0, -player.front + Math.PI / 2, 0), new THREE.Vector3(1, 1, 1));
-    stage.blit(aSpider, player.state, tick, player.position, new THREE.Vector3(0, -player.front, 0), new THREE.Vector3(1, 1, 1));
-    stage.blit(aSpider, "default", 0, new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
+    stage.blit(player);
+    // stage.blit(aSpider, "default", 0, new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(1, 1, 1));
 }
 
 function keyOn(key) {
@@ -131,7 +134,7 @@ function keyOn(key) {
 
 function updatePlayerPosition() {
     player.state = "standing";
-    player.forward = new THREE.Vector3(Math.cos(player.front), 0, Math.sin(player.front));
+    player.forward = new THREE.Vector3(Math.cos(player.rotation.y), 0, Math.sin(player.rotation.y));
     var up = new THREE.Vector3(0, 1, 0);
     var right = up.clone().cross(player.forward);
     var speed = 0.02;
@@ -144,11 +147,11 @@ function updatePlayerPosition() {
         player.state = "walking";
     }
     if (keyOn('left') || keyOn('a')) {
-        player.front -= speed;
+        player.rotation.y -= speed;
         player.state = "walking";
     }
     if (keyOn('right') || keyOn('d')) {
-        player.front += speed;
+        player.rotation.y += speed;
         player.state = "walking";
     }
 }
@@ -156,6 +159,7 @@ function updatePlayerPosition() {
 function animate() {
     tick++;
     updatePlayerPosition();
+    player.update();
     shadowLight.target.position = player.position.clone();
     shadowLight.position = player.position.clone();
     shadowLight.position.y = shadowLight.height;
@@ -165,7 +169,7 @@ function animate() {
     if (Math.random() < 0.1) {
         light.targetIntensity = Math.random() + 2;
     }
-    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range/2)).add(new THREE.Vector3(0, range/2, 0));
+    var cameraTargetPosition = player.position.clone().sub(player.forward.clone().multiplyScalar(range / 2)).add(new THREE.Vector3(0, range / 2, 0));
     camera.position.add(cameraTargetPosition.sub(camera.position.clone()).multiplyScalar(0.1));
     camera.lookAt(player.position);
     drawStage();
@@ -176,7 +180,29 @@ function animate() {
 }
 
 
+var Entity = function(asset) {
 
+    var self = this;
+
+    self.initialize = function() {
+        self.asset = asset;
+        self.state = "default";
+        self.tick = 0;
+        self.position = new THREE.Vector3();
+        self.rotation = new THREE.Vector3();
+        self.scale = new THREE.Vector3(1, 1, 1);
+    }
+
+    self.update = function() {
+        self.tick++;
+    }
+
+    self.reset = function() {
+        self.tick = 0;
+    }
+
+    self.initialize();
+}
 
 var Stage = function() {
 
@@ -186,11 +212,11 @@ var Stage = function() {
         self.root = new THREE.Object3D();
     }
 
-    self.blit = function(asset, state, index, position, rotation, scale) {
-        var m = asset.getMesh(state, index);
-        m.position.set(position.x, position.y, position.z);
-        m.rotation.set(rotation.x, rotation.y, rotation.z);
-        m.scale.set(scale.x, scale.y, scale.z);
+    self.blit = function(entity) {
+        var m = entity.asset.getMesh(entity.state, entity.tick);
+        m.position.set(entity.position.x, entity.position.y, entity.position.z);
+        m.rotation.set(entity.rotation.x, entity.rotation.y, entity.rotation.z);
+        m.scale.set(entity.scale.x, entity.scale.y, entity.scale.z);
         m.children[0].castShadow = true;
         m.children[0].receiveShadow = true;
         self.root.add(m);

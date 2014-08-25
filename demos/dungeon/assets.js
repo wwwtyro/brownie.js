@@ -304,7 +304,7 @@ function spiderGenerator() {
             },
             walking: {
                 frames: ["standing", "stepLeft", "standing", "stepRight"],
-                speed: 3
+                speed: 4
             }
         }
     };
