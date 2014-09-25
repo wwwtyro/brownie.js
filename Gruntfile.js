@@ -6,9 +6,8 @@ module.exports = function (grunt) {
 			brownie: {
 				src: [
 					"src/core.js",
-					"src/geometry-manager.js",
-					"src/quad-manager.js",
-					"src/voxel-manager.js",
+					"src/chunk.js",
+					"src/aotexture.js",
 				],
 				dest: "build/brownie.js"
 			}
@@ -18,6 +17,7 @@ module.exports = function (grunt) {
 			files: "src/*",
 			tasks: ["concat:brownie"]
 		}
+
 	});
 
 
@@ -25,4 +25,5 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-watch');
 
     grunt.registerTask("default", ["concat:brownie"]);
+
 };
