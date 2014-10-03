@@ -21,19 +21,26 @@ window.onload = function() {
     camera.position.set(0, 0, size*1.25);
 
     var brownie = new Brownie();
-    brownie.set(1,1,1,0,0.5,1);
-    brownie.set(0,1,1,0,0.5,1);
-    brownie.set(2,1,1,0,0.5,1);
-    brownie.set(1,0,1,0,0.5,1);
-    brownie.set(1,2,1,0,0.5,1);
-    brownie.set(1,1,0,0,0.5,1);
-    brownie.set(1,1,2,0,0.5,1);
+    brownie.set(0,1,1, 0, 0.5, 1);
+    brownie.set(2,1,1, 0, 0.5, 1);
+    brownie.set(1,0,1, 0, 0.5, 1);
+    brownie.set(1,2,1, 0, 0.5, 1);
+    brownie.set(1,1,0, 0, 0.5, 1);
+    brownie.set(1,1,2, 0, 0.5, 1);
+    brownie.set(0,0,0, 0, 0.5, 1);
+    brownie.set(0,2,0, 0, 0.5, 1);
+    brownie.set(0,0,2, 0, 0.5, 1);
+    brownie.set(0,2,2, 0, 0.5, 1);
+    brownie.set(2,0,0, 0, 0.5, 1);
+    brownie.set(2,2,0, 0, 0.5, 1);
+    brownie.set(2,0,2, 0, 0.5, 1);
+    brownie.set(2,2,2, 0, 0.5, 1);
     brownie.rebuild();
 
     var m = new THREE.MeshPhongMaterial({
         color: 0xffffff,
         map: ambientOcclusionTexture,
-        specular: 0,
+        // specular: 0,
         vertexColors: THREE.VertexColors
     });
 

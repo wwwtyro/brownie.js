@@ -1,5 +1,5 @@
 
-var Brownie = function(renderer) {
+var Brownie = function() {
 
     "use strict";
 
@@ -8,6 +8,13 @@ var Brownie = function(renderer) {
     self.initialize = function() {
         self.chunk = new Chunk();
         self.geometry = new THREE.BufferGeometry();
+        var a3 = new Float32Array([1,1,1,1,1,1,1,1,1]);
+        var a2 = new Float32Array([1,1,1,1,1,1]);
+        self.geometry.addAttribute('position', new THREE.BufferAttribute(a3, 3));
+        self.geometry.addAttribute('normal', new THREE.BufferAttribute(a3, 3));
+        self.geometry.addAttribute('color', new THREE.BufferAttribute(a3, 3));
+        self.geometry.addAttribute('uv', new THREE.BufferAttribute(a2, 2));
+        self.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e38);
     };
 
     self.set = function(x, y, z, r, g, b) {
@@ -32,12 +39,14 @@ var Brownie = function(renderer) {
 
     self.rebuild = function() {
         var arrays = self.chunk.genArrays();
-        self.geometry.dispose();
-        self.geometry = new THREE.BufferGeometry();
-        self.geometry.addAttribute('position', new THREE.BufferAttribute(arrays.positions, 3));
-        self.geometry.addAttribute('normal', new THREE.BufferAttribute(arrays.normals, 3));
-        self.geometry.addAttribute('color', new THREE.BufferAttribute(arrays.colors, 3));
-        self.geometry.addAttribute('uv', new THREE.BufferAttribute(arrays.uvs, 2));
+        self.geometry.attributes.position.array = arrays.positions;
+        self.geometry.attributes.normal.array = arrays.normals;
+        self.geometry.attributes.color.array = arrays.colors;
+        self.geometry.attributes.uv.array = arrays.uvs;
+        self.geometry.attributes.position.needsUpdate = true;
+        self.geometry.attributes.normal.needsUpdate = true;
+        self.geometry.attributes.color.needsUpdate = true;
+        self.geometry.attributes.uv.needsUpdate = true;
     };
 
     self.getGeometry = function() {
@@ -73,9 +82,18 @@ var Brownie = function(renderer) {
         self.geometry.dispose();
     };
 
+    self.blit = function(source, x, y, z) {
+        for (var k in source.chunk.voxels) {
+            var v = source.chunk.voxels[k];
+            self.set(v.x + x, v.y + y, v.z + z, v.r, v.g, v.b);
+        }
+    }
+
     self.initialize();
     
-};
+}; 
+
+
 var Chunk = function() {
 
     "use strict";
