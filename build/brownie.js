@@ -111,7 +111,15 @@ var Chunk = function() {
             z: z,
             r: r,
             g: g,
-            b: b
+            b: b,
+            ao: {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                back: 0,
+                front: 0
+            }
         };
     };
 
@@ -151,17 +159,17 @@ var Chunk = function() {
     self.getCentroid = function() {
         var b = self.getBounds();
         return {
-            x: (b.min.x + b.max.x)/2,
-            y: (b.min.y + b.max.y)/2,
-            z: (b.min.z + b.max.z)/2
+            x: (b.min.x + b.max.x) / 2,
+            y: (b.min.y + b.max.y) / 2,
+            z: (b.min.z + b.max.z) / 2
         };
     };
 
     self.genUVs = function(aoIndex) {
-        var x0 = ((aoIndex % 16) * 64 + 0.5)/1024;
-        var y0 = 1 - (Math.floor(aoIndex/16) * 64 + 0.5)/1024;
-        var x1 = ((aoIndex % 16) * 64 + 63.5)/1024;
-        var y1 = 1 - (Math.floor(aoIndex/16) * 64 + 63.5)/1024;
+        var x0 = ((aoIndex % 16) * 64 + 0.5) / 1024;
+        var y0 = 1 - (Math.floor(aoIndex / 16) * 64 + 0.5) / 1024;
+        var x1 = ((aoIndex % 16) * 64 + 63.5) / 1024;
+        var y1 = 1 - (Math.floor(aoIndex / 16) * 64 + 63.5) / 1024;
         return [
             x0, y1,
             x1, y1,
@@ -173,9 +181,9 @@ var Chunk = function() {
     }
 
     self.genArrays = function() {
-        var aoleft = 0.5 * 1/(64 * 256);
-        var aoright = 63.5 * 1/(64 * 256);
-        var aoWidth = 1/256;
+        var aoleft = 0.5 * 1 / (64 * 256);
+        var aoright = 63.5 * 1 / (64 * 256);
+        var aoWidth = 1 / 256;
         var positions = [];
         var normals = [];
         var colors = [];
@@ -184,14 +192,14 @@ var Chunk = function() {
         for (var i = 0; i < keys.length; i++) {
             var v = self.voxels[keys[i]];
             if (!([v.x, v.y, v.z + 1] in self.voxels)) {
-                var ao0 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x + 0, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao2 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x + 1, v.y + 0, v.z + 1] in self.voxels? 1 : 0;
-                var ao4 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x + 0, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao6 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x - 1, v.y + 0, v.z + 1] in self.voxels? 1 : 0;
+                var ao0 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x + 0, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao2 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x + 1, v.y + 0, v.z + 1] in self.voxels ? 1 : 0;
+                var ao4 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x + 0, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao6 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x - 1, v.y + 0, v.z + 1] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -208,15 +216,16 @@ var Chunk = function() {
                     v.x + 1, v.y + 1, v.z + 1,
                     v.x + 0, v.y + 0, v.z + 1,
                     v.x + 1, v.y + 1, v.z + 1,
-                    v.x + 0, v.y + 1, v.z + 1 
+                    v.x + 0, v.y + 1, v.z + 1
                 ]);
+                var aoFactor = 1 - v.ao.back;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
                 normals.push.apply(normals, [
                     0, 0, 1,
@@ -228,14 +237,14 @@ var Chunk = function() {
                 ]);
             }
             if (!([v.x, v.y, v.z - 1] in self.voxels)) {
-                var ao0 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x + 0, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao2 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x - 1, v.y + 0, v.z - 1] in self.voxels? 1 : 0;
-                var ao4 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x + 0, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao6 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x + 1, v.y + 0, v.z - 1] in self.voxels? 1 : 0;
+                var ao0 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x + 0, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao2 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x - 1, v.y + 0, v.z - 1] in self.voxels ? 1 : 0;
+                var ao4 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x + 0, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao6 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x + 1, v.y + 0, v.z - 1] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -262,24 +271,25 @@ var Chunk = function() {
                     0, 0, -1,
                     0, 0, -1
                 ]);
+                var aoFactor = 1 - v.ao.front;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
             }
             if (!([v.x - 1, v.y, v.z] in self.voxels)) {
-                var ao0 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x - 1, v.y - 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao2 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x - 1, v.y + 0, v.z + 1] in self.voxels? 1 : 0;
-                var ao4 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x - 1, v.y + 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao6 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x - 1, v.y + 0, v.z - 1] in self.voxels? 1 : 0;
+                var ao0 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x - 1, v.y - 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao2 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x - 1, v.y + 0, v.z + 1] in self.voxels ? 1 : 0;
+                var ao4 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x - 1, v.y + 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao6 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x - 1, v.y + 0, v.z - 1] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -298,32 +308,26 @@ var Chunk = function() {
                     v.x + 0, v.y + 1, v.z + 1,
                     v.x + 0, v.y + 1, v.z + 0,
                 ]);
-                normals.push.apply(normals, [
-                    -1, 0, 0,
-                    -1, 0, 0,
-                    -1, 0, 0,
-                    -1, 0, 0,
-                    -1, 0, 0,
-                    -1, 0, 0
-                ]);
+                normals.push.apply(normals, [-1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0]);
+                var aoFactor = 1 - v.ao.left;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
             }
             if (!([v.x + 1, v.y, v.z] in self.voxels)) {
-                var ao0 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x + 1, v.y - 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao2 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x + 1, v.y + 0, v.z - 1] in self.voxels? 1 : 0;
-                var ao4 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x + 1, v.y + 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao6 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x + 1, v.y + 0, v.z + 1] in self.voxels? 1 : 0;
+                var ao0 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x + 1, v.y - 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao2 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x + 1, v.y + 0, v.z - 1] in self.voxels ? 1 : 0;
+                var ao4 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x + 1, v.y + 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao6 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x + 1, v.y + 0, v.z + 1] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -350,24 +354,25 @@ var Chunk = function() {
                     1, 0, 0,
                     1, 0, 0
                 ]);
+                var aoFactor = 1 - v.ao.right;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
             }
             if (!([v.x, v.y + 1, v.z] in self.voxels)) {
-                var ao0 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x + 0, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao2 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x + 1, v.y + 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao4 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x + 0, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao6 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x - 1, v.y + 1, v.z + 0] in self.voxels? 1 : 0;
+                var ao0 = [v.x - 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x + 0, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao2 = [v.x + 1, v.y + 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x + 1, v.y + 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao4 = [v.x + 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x + 0, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao6 = [v.x - 1, v.y + 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x - 1, v.y + 1, v.z + 0] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -394,24 +399,25 @@ var Chunk = function() {
                     0, 1, 0,
                     0, 1, 0
                 ]);
+                var aoFactor = 1 - v.ao.top;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
             }
             if (!([v.x, v.y - 1, v.z] in self.voxels)) {
-                var ao0 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao1 = [v.x + 0, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao2 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels? 1 : 0;
-                var ao3 = [v.x - 1, v.y - 1, v.z + 0] in self.voxels? 1 : 0;
-                var ao4 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao5 = [v.x + 0, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao6 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels? 1 : 0;
-                var ao7 = [v.x + 1, v.y - 1, v.z + 0] in self.voxels? 1 : 0;
+                var ao0 = [v.x + 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao1 = [v.x + 0, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao2 = [v.x - 1, v.y - 1, v.z + 1] in self.voxels ? 1 : 0;
+                var ao3 = [v.x - 1, v.y - 1, v.z + 0] in self.voxels ? 1 : 0;
+                var ao4 = [v.x - 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao5 = [v.x + 0, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao6 = [v.x + 1, v.y - 1, v.z - 1] in self.voxels ? 1 : 0;
+                var ao7 = [v.x + 1, v.y - 1, v.z + 0] in self.voxels ? 1 : 0;
                 var aoIndex = 0;
                 aoIndex += ao0 << 0;
                 aoIndex += ao1 << 1;
@@ -438,13 +444,14 @@ var Chunk = function() {
                     0, -1, 0,
                     0, -1, 0
                 ]);
+                var aoFactor = 1 - v.ao.bottom;
                 colors.push.apply(colors, [
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b,
-                    v.r, v.g, v.b
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
+                    v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                 ]);
             }
         }
@@ -456,6 +463,101 @@ var Chunk = function() {
         };
     }
 
+    function random() {
+        return (Math.random()*2-1)+(Math.random()*2-1)+(Math.random()*2-1);
+    }
+
+    function random_choice(a) {
+        return a[Math.floor(Math.random() * a.length)];
+    }
+
+    self.calculateAO = function(samples, range) {
+        var rays = {
+            top: [],
+            bottom: [],
+            left: [],
+            right: [],
+            front: [],
+            back: []
+        };
+        for (var i = 0; i < samples * 100; i++) {
+            var ray = {
+                x: random(),
+                y: random(),
+                z: random()
+            };
+            var d = Math.sqrt(ray.x * ray.x + ray.y * ray.y + ray.z * ray.z);
+            ray.x /= d;
+            ray.y /= d;
+            ray.z /= d;
+            rays.top.push({
+                x: ray.x,
+                y: Math.abs(ray.y),
+                z: ray.z,
+            })
+            rays.bottom.push({
+                x: ray.x,
+                y: -Math.abs(ray.y),
+                z: ray.z,
+            })
+            rays.left.push({
+                x: -Math.abs(ray.x),
+                y: ray.y,
+                z: ray.z,
+            })
+            rays.right.push({
+                x: Math.abs(ray.x),
+                y: ray.y,
+                z: ray.z,
+            })
+            rays.front.push({
+                x: ray.x,
+                y: ray.y,
+                z: -Math.abs(ray.z),
+            })
+            rays.back.push({
+                x: ray.x,
+                y: ray.y,
+                z: Math.abs(ray.z),
+            })
+        }
+        var keys = Object.keys(self.voxels);
+        var faces = [
+            "top", "bottom", "left", "right", "front", "back"
+        ]
+        var eyes = {
+            top: [0.5, 1.01, 0.5],
+            bottom: [0.5, -0.01, 0.5],
+            left: [-0.01, 0.5, 0.5],
+            right: [1.01, 0.5, 0.5],
+            front: [0.5, 0.5, -0.01],
+            back: [0.5, 0.5, 1.01]
+        }
+        for (var ki = 0; ki < keys.length; ki++) {
+            var v = self.voxels[keys[ki]];
+            for (var fi = 0; fi < faces.length; fi++) {
+                var face = faces[fi];
+                var nIntersections = 0;
+                for (var i = 0; i < samples; i++) {
+                    var ray = random_choice(rays[face]);
+                    var e = eyes[face];
+                    var eye = {
+                        x: v.x + e[0],
+                        y: v.y + e[1],
+                        z: v.z + e[2]
+                    };
+                    var list = castRay(eye, ray, range);
+                    for (var j = 0; j < list.length; j++) {
+                        if (self.voxels[list[j]] != undefined) {
+                            nIntersections++;
+                            break;
+                        }
+                    }
+                }
+                v.ao[face] = nIntersections/samples;
+            }
+        }
+    }
 
 
     self.initialize();
@@ -479,3 +581,58 @@ var whiteTexture = (function() {
     tex.needsUpdate = true;
     return tex;
 })();
+function sign(x) {
+    return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;
+}
+
+function castRay(eye, ray, count) {
+    "use strict";
+
+    var X = Math.floor(eye.x);
+    var Y = Math.floor(eye.y);
+    var Z = Math.floor(eye.z);
+
+    var stepX = sign(ray.x);
+    var stepY = sign(ray.y);
+    var stepZ = sign(ray.z);
+
+    var vx0 = Math.floor(eye.x);
+    var vy0 = Math.floor(eye.y);
+    var vz0 = Math.floor(eye.z);
+    var vx1 = vx0 + 1;
+    var vy1 = vy0 + 1;
+    var vz1 = vz0 + 1;
+    var tMaxX = Math.max((vx0 - eye.x) / ray.x, (vx1 - eye.x) / ray.x);
+    var tMaxY = Math.max((vy0 - eye.y) / ray.y, (vy1 - eye.y) / ray.y);
+    var tMaxZ = Math.max((vz0 - eye.z) / ray.z, (vz1 - eye.z) / ray.z);
+
+    var tDeltaX = 1 / Math.abs(ray.x);
+    var tDeltaY = 1 / Math.abs(ray.y);
+    var tDeltaZ = 1 / Math.abs(ray.z);
+
+    var list = [
+        [X, Y, Z]
+    ];
+
+    for (var i = 0; i < count - 1; i++) {
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                X = X + stepX;
+                tMaxX = tMaxX + tDeltaX;
+            } else {
+                Z = Z + stepZ;
+                tMaxZ = tMaxZ + tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                Y = Y + stepY;
+                tMaxY = tMaxY + tDeltaY;
+            } else {
+                Z = Z + stepZ;
+                tMaxZ = tMaxZ + tDeltaZ;
+            }
+        }
+        list.push([X, Y, Z]);
+    }
+    return list;
+}
