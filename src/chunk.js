@@ -16,13 +16,31 @@ var Chunk = function() {
             r: r,
             g: g,
             b: b,
-            ao: {
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                back: 0,
-                front: 0
+            faces: {
+                top: {
+                    ao: 0,
+                    external: false
+                },
+                bottom: {
+                    ao: 0,
+                    external: false
+                },
+                left: {
+                    ao: 0,
+                    external: false
+                },
+                right: {
+                    ao: 0,
+                    external: false
+                },
+                front: {
+                    ao: 0,
+                    external: false
+                },
+                back: {
+                    ao: 0,
+                    external: false
+                }
             }
         };
     };
@@ -53,9 +71,9 @@ var Chunk = function() {
             bounds.min.x = Math.min(bounds.min.x, v.x);
             bounds.min.y = Math.min(bounds.min.y, v.y);
             bounds.min.z = Math.min(bounds.min.z, v.z);
-            bounds.max.x = Math.max(bounds.max.x, v.x + 1);
-            bounds.max.y = Math.max(bounds.max.y, v.y + 1);
-            bounds.max.z = Math.max(bounds.max.z, v.z + 1);
+            bounds.max.x = Math.max(bounds.max.x, v.x);
+            bounds.max.y = Math.max(bounds.max.y, v.y);
+            bounds.max.z = Math.max(bounds.max.z, v.z);
         }
         return bounds;
     };
@@ -122,7 +140,7 @@ var Chunk = function() {
                     v.x + 1, v.y + 1, v.z + 1,
                     v.x + 0, v.y + 1, v.z + 1
                 ]);
-                var aoFactor = 1 - v.ao.back;
+                var aoFactor = 1 - v.faces.back.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -175,7 +193,7 @@ var Chunk = function() {
                     0, 0, -1,
                     0, 0, -1
                 ]);
-                var aoFactor = 1 - v.ao.front;
+                var aoFactor = 1 - v.faces.front.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -213,7 +231,7 @@ var Chunk = function() {
                     v.x + 0, v.y + 1, v.z + 0,
                 ]);
                 normals.push.apply(normals, [-1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0]);
-                var aoFactor = 1 - v.ao.left;
+                var aoFactor = 1 - v.faces.left.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -258,7 +276,7 @@ var Chunk = function() {
                     1, 0, 0,
                     1, 0, 0
                 ]);
-                var aoFactor = 1 - v.ao.right;
+                var aoFactor = 1 - v.faces.right.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -303,7 +321,7 @@ var Chunk = function() {
                     0, 1, 0,
                     0, 1, 0
                 ]);
-                var aoFactor = 1 - v.ao.top;
+                var aoFactor = 1 - v.faces.top.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -348,7 +366,7 @@ var Chunk = function() {
                     0, -1, 0,
                     0, -1, 0
                 ]);
-                var aoFactor = 1 - v.ao.bottom;
+                var aoFactor = 1 - v.faces.bottom.ao;
                 colors.push.apply(colors, [
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
                     v.r * aoFactor, v.g * aoFactor, v.b * aoFactor,
@@ -367,6 +385,143 @@ var Chunk = function() {
         };
     }
 
+    self.markExternalFaces = function() {
+        var toVisit = {};
+        var visited = {};
+        var visiting = {};
+
+        var bounds = self.getBounds();
+
+        // Mark all faces as internal.
+        var keys = Object.keys(self.voxels);
+        for (var ki = 0; ki < keys.length; ki++) {
+            var v = self.voxels[keys[ki]];
+            v.faces.top.external = false;
+            v.faces.bottom.external = false;
+            v.faces.left.external = false;
+            v.faces.right.external = false;
+            v.faces.front.external = false;
+            v.faces.back.external = false;
+        }
+
+        // Create an initial set of voxels to visit, surrounding the bounds.
+        for (var x = bounds.min.x - 1; x <= bounds.max.x + 1; x++) {
+            for (var y = bounds.min.y - 1; y <= bounds.max.y + 1; y++) {
+                for (var z = bounds.min.z - 1; z <= bounds.max.z + 1; z++) {
+                    if (x == bounds.min.x - 1 || x == bounds.max.x + 1) {
+                        toVisit[[x, y, z]] = {
+                            x: x,
+                            y: y,
+                            z: z
+                        };
+                    }
+                    if (y == bounds.min.y - 1 || y == bounds.max.y + 1) {
+                        toVisit[[x, y, z]] = {
+                            x: x,
+                            y: y,
+                            z: z
+                        };
+                    }
+                    if (z == bounds.min.z - 1 || z == bounds.max.z + 1) {
+                        toVisit[[x, y, z]] = {
+                            x: x,
+                            y: y,
+                            z: z
+                        };
+                    }
+                }
+            }
+        }
+
+        function markFace(v, x, y, z, face) {
+            self.voxels[[v.x + x, v.y + y, v.z + z]].faces[face].external = true;
+        }
+
+        function schedule(v, x, y, z) {
+            // Adds a target voxel to the toVisit list if it passes some criteria.
+
+            // The voxel we want to schedule.
+            var target = [v.x + x, v.y + y, v.z + z];
+
+            // Can't be one we've already looked at.
+            if (target in visited) {
+                return;
+            }
+
+            // Can't be one we're currently looking at.
+            if (target in visiting) {
+                return;
+            }
+
+            // Needs to be within the bounds of the chunk.
+            if (target[0] < bounds.min.x - 1 || target[0] > bounds.max.x + 1) {
+                return;
+            }
+            if (target[1] < bounds.min.y - 1 || target[1] > bounds.max.y + 1) {
+                return;
+            }
+            if (target[2] < bounds.min.z - 1 || target[2] > bounds.max.z + 1) {
+                return;
+            }
+
+            // Everything is okay; schedule target for a visit.
+            toVisit[target] = {
+                x: v.x + x,
+                y: v.y + y,
+                z: v.z + z
+            }
+        }
+
+        while (Object.keys(toVisit).length > 0) {
+            visiting = toVisit;
+            toVisit = {};
+            for (var key in visiting) {
+                visited[key] = true;
+
+                var v = visiting[key];
+
+                if ([v.x, v.y + 1, v.z] in self.voxels) {
+                    markFace(v, 0, 1, 0, "bottom");
+                } else {
+                    schedule(v, 0, 1, 0);
+                }
+
+                if ([v.x, v.y - 1, v.z] in self.voxels) {
+                    markFace(v, 0, -1, 0, "top");
+                } else {
+                    schedule(v, 0, -1, 0);
+                }
+
+                if ([v.x - 1, v.y, v.z] in self.voxels) {
+                    markFace(v, -1, 0, 0, "right");
+                } else {
+                    schedule(v, -1, 0, 0);
+                }
+
+                if ([v.x + 1, v.y, v.z] in self.voxels) {
+                    markFace(v, 1, 0, 0, "left");
+                } else {
+                    schedule(v, 1, 0, 0);
+                }
+
+                if ([v.x, v.y, v.z - 1] in self.voxels) {
+                    markFace(v, 0, 0, -1, "back");
+                } else {
+                    schedule(v, 0, 0, -1);
+                }
+
+                if ([v.x, v.y, v.z + 1] in self.voxels) {
+                    markFace(v, 0, 0, 1, "front");
+                } else {
+                    schedule(v, 0, 0, 1);
+                }
+
+            }
+        }
+    }
+
+
+
     function random() {
         return (Math.random()*2-1)+(Math.random()*2-1)+(Math.random()*2-1);
     }
@@ -374,6 +529,9 @@ var Chunk = function() {
     function random_choice(a) {
         return a[Math.floor(Math.random() * a.length)];
     }
+
+
+
 
     self.calculateAO = function(samples, range) {
         var rays = {
@@ -425,10 +583,13 @@ var Chunk = function() {
                 z: Math.abs(ray.z),
             })
         }
-        var keys = Object.keys(self.voxels);
+
+        self.markExternalFaces();
+
         var faces = [
             "top", "bottom", "left", "right", "front", "back"
-        ]
+        ];
+
         var eyes = {
             top: [0.5, 1.01, 0.5],
             bottom: [0.5, -0.01, 0.5],
@@ -436,11 +597,17 @@ var Chunk = function() {
             right: [1.01, 0.5, 0.5],
             front: [0.5, 0.5, -0.01],
             back: [0.5, 0.5, 1.01]
-        }
+        };
+
+        var keys = Object.keys(self.voxels);
+        
         for (var ki = 0; ki < keys.length; ki++) {
             var v = self.voxels[keys[ki]];
             for (var fi = 0; fi < faces.length; fi++) {
                 var face = faces[fi];
+                if (!v.faces[face].external) {
+                    continue;
+                }
                 var nIntersections = 0;
                 for (var i = 0; i < samples; i++) {
                     var ray = random_choice(rays[face]);
@@ -458,7 +625,7 @@ var Chunk = function() {
                         }
                     }
                 }
-                v.ao[face] = nIntersections/samples;
+                v.faces[face].ao = nIntersections/samples;
             }
         }
     }

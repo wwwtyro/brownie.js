@@ -2,7 +2,7 @@ function sign(x) {
     return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;
 }
 
-function castRay(eye, ray, count) {
+function castRay(eye, ray, range) {
     "use strict";
 
     var X = Math.floor(eye.x);
@@ -31,7 +31,16 @@ function castRay(eye, ray, count) {
         [X, Y, Z]
     ];
 
-    for (var i = 0; i < count - 1; i++) {
+    var r2 = range * range;
+
+    function distance() {
+        var dx = tMaxX * stepX
+        var dy = tMaxY * stepY
+        var dz = tMaxZ * stepZ
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    while(distance() < r2) {
         if (tMaxX < tMaxY) {
             if (tMaxX < tMaxZ) {
                 X = X + stepX;
