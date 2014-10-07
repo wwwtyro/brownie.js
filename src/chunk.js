@@ -522,18 +522,13 @@ var Chunk = function() {
 
 
 
-    function random() {
-        return (Math.random()*2-1)+(Math.random()*2-1)+(Math.random()*2-1);
-    }
 
-    function random_choice(a) {
-        return a[Math.floor(Math.random() * a.length)];
-    }
+    self.calculateAO = function(samples, range, depth) {
 
+        samples = samples === undefined ? 100 : samples;
+        range = range === undefined ? 32 : range;
+        depth = depth === undefined ? 1 : depth;
 
-
-
-    self.calculateAO = function(samples, range) {
         var rays = {
             top: [],
             bottom: [],
@@ -544,9 +539,9 @@ var Chunk = function() {
         };
         for (var i = 0; i < samples * 100; i++) {
             var ray = {
-                x: random(),
-                y: random(),
-                z: random()
+                x: random.gauss(),
+                y: random.gauss(),
+                z: random.gauss()
             };
             var d = Math.sqrt(ray.x * ray.x + ray.y * ray.y + ray.z * ray.z);
             ray.x /= d;
@@ -610,7 +605,7 @@ var Chunk = function() {
                 }
                 var nIntersections = 0;
                 for (var i = 0; i < samples; i++) {
-                    var ray = random_choice(rays[face]);
+                    var ray = random.choice(rays[face]);
                     var e = eyes[face];
                     var eye = {
                         x: v.x + e[0],
@@ -625,11 +620,112 @@ var Chunk = function() {
                         }
                     }
                 }
-                v.faces[face].ao = nIntersections/samples;
+                v.faces[face].ao = depth * nIntersections/samples;
             }
         }
     }
 
+
+
+
+    self.antialiasAO = function() {
+
+        var offsets = {
+            top: [
+                [-1, 0, 1],
+                [0, 0, 1],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, -1],
+                [0, 0, -1],
+                [-1, 0, -1],
+                [-1, 0, 0]
+            ],
+            bottom: [
+                [-1, 0, 1],
+                [0, 0, 1],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, -1],
+                [0, 0, -1],
+                [-1, 0, -1],
+                [-1, 0, 0]
+            ],
+            left: [
+                [0, -1, -1],
+                [0, -1, 0],
+                [0, -1, 1],
+                [0, 0, 1],
+                [0, 1, 1],
+                [0, 1, 0],
+                [0, 1, -1],
+                [0, 0, -1]
+            ],
+            right: [
+                [0, -1, -1],
+                [0, -1, 0],
+                [0, -1, 1],
+                [0, 0, 1],
+                [0, 1, 1],
+                [0, 1, 0],
+                [0, 1, -1],
+                [0, 0, -1]
+            ],
+            front: [
+                [-1, -1, 0],
+                [0, -1, 0],
+                [1, -1, 0],
+                [1, 0, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+                [-1, 1, 0],
+                [-1, 0, 0],
+            ],
+            back: [
+                [-1, -1, 0],
+                [0, -1, 0],
+                [1, -1, 0],
+                [1, 0, 0],
+                [1, 1, 0],
+                [0, 1, 0],
+                [-1, 1, 0],
+                [-1, 0, 0],
+            ],
+        };
+
+        var offsetKeys = Object.keys(offsets);
+
+        var keys = Object.keys(self.voxels);
+        
+        var result = [];
+        
+        for (var ki = 0; ki < keys.length; ki++) {
+            var v = self.voxels[keys[ki]];
+            for (var ko = 0; ko < offsetKeys.length; ko++) {
+                var face = offsetKeys[ko];
+                if (!v.faces[face].external) {
+                    continue;
+                }
+                var count = 1;
+                var total = v.faces[face].ao;
+                for (var fi = 0; fi < 8; fi++) {
+                    var o = offsets[face][fi];
+                    var vp = self.voxels[[v.x + o[0], v.y + o[1], v.z + o[2]]];
+                    if (!vp || !vp.faces[face].external) {
+                        continue;
+                    }
+                    count++;
+                    total += vp.faces[face].ao;
+                }
+                result.push([v, face, total/count]);
+            }
+        }
+
+        for (var i = 0; i < result.length; i++) {
+            var r = result[i];
+            r[0].faces[r[1]].ao = r[2];
+        }
+    }
 
     self.initialize();
 
