@@ -1,12 +1,17 @@
 "use strict";
 
-var scene, mesh, camera, renderer, dummy;
+var scene, noaomesh, aomesh, camera, renderer, dummy, trackball;
 
-window.onload = function() {
+var size = 32;
+
+$.getJSON("model.json", function(baked) {
 
     var renderCanvas = document.getElementById("render-canvas");
     renderCanvas.width = window.innerWidth;
     renderCanvas.height = window.innerHeight;
+
+    trackball = new Trackball(renderCanvas);
+    trackball.rotationMatrix.makeRotationX(1.0);
 
     renderer = new THREE.WebGLRenderer({
         canvas: renderCanvas,
@@ -16,90 +21,126 @@ window.onload = function() {
 
     scene = new THREE.Scene();
 
-    var size = 32; //Must be multiple of two.
+    dummy = new THREE.Object3D();
+    scene.add(dummy);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 100);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     camera.position.set(0, 0, size*2);
 
     var brownie = new Brownie();
+    brownie.chunk.voxels = baked;
+    brownie.rebuild();
 
-    for (var x = -size/2; x < size + size/2; x++) {
-        for (var z = -size/2; z < size + size/2; z++) {
-            brownie.set(x, -1, z, 1, 1, 1);
-        }
+    var m = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        map: ambientOcclusionTexture,
+        specular: 0,
+        vertexColors: THREE.VertexColors
+    });
+
+    aomesh = new THREE.Mesh(brownie.getGeometry(), m);
+    aomesh.position.set(-size/2, 0, -size/2);
+
+    for (var key in baked) {
+        var v = baked[key];
+        v.faces.top.ao = 0;
+        v.faces.bottom.ao = 0;
+        v.faces.left.ao = 0;
+        v.faces.right.ao = 0;
+        v.faces.front.ao = 0;
+        v.faces.back.ao = 0;
     }
 
-    for (var i = 0; i < size; i++) {
-        var x = Math.floor(Math.random() * size);
-        var z = Math.floor(Math.random() * size);
-        var r = Math.random() * 0.5 + 0.5;
-        var g = Math.random() * 0.5 + 0.5;
-        var b = Math.random() * 0.5 + 0.5;
-        for (var y = 0; y < size; y++) {
-            brownie.set(x, y, z, r, g, b);
-        }
-        var y = Math.floor(Math.random() * size);
-        var z = Math.floor(Math.random() * size);
-        var r = Math.random() * 0.5 + 0.5;
-        var g = Math.random() * 0.5 + 0.5;
-        var b = Math.random() * 0.5 + 0.5;
-        for (var x = 0; x < size; x++) {
-            brownie.set(x, y, z, r, g, b);
-        }
-        var y = Math.floor(Math.random() * size);
-        var x = Math.floor(Math.random() * size);
-        var r = Math.random() * 0.5 + 0.5;
-        var g = Math.random() * 0.5 + 0.5;
-        var b = Math.random() * 0.5 + 0.5;
-        for (var z = 0; z < size; z++) {
-            brownie.set(x, y, z, r, g, b);
-        }
-    }
-
-    var t0 = performance.now();
-    brownie.chunk.calculateAO(100, size);
-    console.log("AO:", performance.now() - t0);
-
-    var t0 = performance.now();
-    for (var i = 0; i < 2; i++) {
-        brownie.chunk.antialiasAO();
-    }
-    console.log("AO AA:", performance.now() - t0);
-    
+    var brownie = new Brownie();
+    brownie.chunk.voxels = baked;
     brownie.rebuild();
 
     var m = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         map: whiteTexture,
-        // map: ambientOcclusionTexture,
         specular: 0,
         vertexColors: THREE.VertexColors
     });
 
-    dummy = new THREE.Object3D();
-    scene.add(dummy);
+    noaomesh = new THREE.Mesh(brownie.getGeometry(), m);
+    noaomesh.position.set(-size/2, 0, -size/2);
 
-    mesh = new THREE.Mesh(brownie.getGeometry(), m);
-    mesh.position.set(-size/2, 0, -size/2);
-    dummy.add(mesh);
+    window.onresize = function() {
+        console.log("foo");
+    }
 
-    // mesh = new THREE.Mesh(brownie.getGeometry(), m);
-    // mesh.position.set(size + size/2 + 1, -size/2, -size/2);
-    // dummy.add(mesh);
-
-    var light = new THREE.PointLight({
-        color: 0xffffff
-    });
-    light.position.set(size*2, size*2, size*4);
-    scene.add(light);
+    $("#loading").hide();
 
     animate();
-}
-
+});
 
 function animate() {
-    dummy.rotation.y = 0.5;
-    dummy.rotation.x = 0.75;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight, true);
+    dummy.remove(noaomesh);
+    dummy.remove(aomesh);
+    if (document.getElementById("ao-checkbox").checked) {
+        dummy.add(aomesh);
+    } else {
+        dummy.add(noaomesh);
+    }
+    dummy.rotation.setFromQuaternion(trackball.getSmoothRotation());
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }
+
+
+var Trackball = function(element) {
+
+    var self = this;
+
+    self.initialize = function() {
+        self.rotationMatrix = new THREE.Matrix4();
+        self.smoothRotation = new THREE.Quaternion();
+        self.lastx = null;
+        self.lasty = null;
+        self.button = false;
+        element.addEventListener("mousedown", self.mousedown, false);
+        window.addEventListener("mouseup", self.mouseup, false);
+        window.addEventListener("mousemove", self.mousemove, false);
+    }
+
+    self.mousedown = function(e) {
+        self.button = true;
+        self.lastx = e.screenX;
+        self.lasty = e.screenY;
+        element.style.cursor = "none";
+    }
+
+    self.mouseup = function(e) {
+        self.button = false;
+        element.style.cursor = "default";
+    }
+
+    self.mousemove = function(e) {
+        if (!self.button) {
+            return;
+        }
+        var dx = e.screenX - self.lastx;
+        var dy = e.screenY - self.lasty;
+        self.lastx = e.screenX;
+        self.lasty = e.screenY;
+        var tempMat = new THREE.Matrix4();
+        tempMat.makeRotationAxis(new THREE.Vector3(0, 1, 0), dx * 0.005);
+        tempMat.multiply(self.rotationMatrix);
+        var tempMat2 = new THREE.Matrix4();
+        tempMat2.makeRotationAxis(new THREE.Vector3(1, 0, 0), dy * 0.005);
+        tempMat2.multiply(tempMat);
+        self.rotationMatrix = tempMat2;
+    };
+
+    self.getSmoothRotation = function() {
+        var target = new THREE.Quaternion().setFromRotationMatrix(self.rotationMatrix);
+        self.smoothRotation.slerp(target, 0.25);
+        return self.smoothRotation;
+    }
+
+    self.initialize();
+}
+

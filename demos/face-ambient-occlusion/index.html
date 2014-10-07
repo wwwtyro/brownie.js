@@ -1,11 +1,22 @@
 
 <html>
+
     <head>
-        <script src="../../lib/three.js"></script>
-        <script src="../../build/brownie.js"></script>
-        <script src="main.js"></script>
         <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
     <body>
         <canvas id="render-canvas"></canvas>
+        <div id="ao-wrapper">
+            <input id="ao-checkbox" type="checkbox" checked> Ambient Occlusion
+        </div>
+        <div id="loading">
+            LOADING
+        </div>
     </body>
+
+    <script src="../../lib/jquery.js"></script>
+    <script src="../../lib/three.js"></script>
+    <script src="../../build/brownie.js"></script>
+    <script src="main.js"></script>
+
 </html>

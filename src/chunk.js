@@ -523,7 +523,7 @@ var Chunk = function() {
 
 
 
-    self.calculateAO = function(samples, range, depth) {
+    self.calculateAO = function(samples, range, depth, progress) {
 
         samples = samples === undefined ? 100 : samples;
         range = range === undefined ? 32 : range;
@@ -597,6 +597,9 @@ var Chunk = function() {
         var keys = Object.keys(self.voxels);
         
         for (var ki = 0; ki < keys.length; ki++) {
+            if (progress) {
+                progress(ki/keys.length);
+            }
             var v = self.voxels[keys[ki]];
             for (var fi = 0; fi < faces.length; fi++) {
                 var face = faces[fi];

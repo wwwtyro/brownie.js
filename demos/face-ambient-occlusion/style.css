@@ -1,9 +1,29 @@
 
 body {
     margin: 0px;
+    font-family: sans;
+    font-size: 14px;
 }
 
 #render-canvas {
     width: 100%;
     height: 100%;
+}
+
+#ao-wrapper {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+}
+
+#loading {
+    position: fixed;
+    top: 45%;
+    left: 0px;
+    right: 0px;
+    text-align: center;
+}
+
+input {
+    vertical-align: -2px;
 }
