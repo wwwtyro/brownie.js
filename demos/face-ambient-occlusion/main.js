@@ -65,10 +65,6 @@ $.getJSON("model.json", function(baked) {
     noaomesh = new THREE.Mesh(brownie.getGeometry(), m);
     noaomesh.position.set(-size/2, 0, -size/2);
 
-    window.onresize = function() {
-        console.log("foo");
-    }
-
     $("#loading").hide();
 
     animate();
