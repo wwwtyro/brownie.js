@@ -94,6 +94,46 @@ var Brownie = function() {
 }; 
 
 
+var Vec3 = function(x, y, z) {
+
+    var self = this;
+
+    self.initialize = function() {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    };
+
+    self.clone = function() {
+        return new Vec3(self.x, self.y, self.z);
+    };
+
+    self.times = function(a) {
+        if (typeof a === "number") {
+            return new Vec3(a * self.x, a * self.y, a * self.z);
+        } else {
+            return new Vec3(a.x * self.x, a.y * self.y, a.z * self.z);
+        }
+    }
+
+    self.plus = function(a) {
+        if (typeof a === "number") {
+            return new Vec3(a + self.x, a + self.y, a + self.z);
+        } else {
+            return new Vec3(a.x + self.x, a.y + self.y, a.z + self.z);
+        }
+    }
+
+    self.minus = function(a) {
+        if (typeof a === "number") {
+            return new Vec3(self.x - a, self.y - a, self.z - a);
+        } else {
+            return new Vec3(self.x - a.x, self.y - a.y, self.z - a.z);
+        }
+    }
+
+    self.initialize();
+}
 var Chunk = function() {
 
     "use strict";
@@ -827,535 +867,196 @@ var Chunk = function() {
 
     self.freeze = function() {
 
-        var used;
-
-        function hasFace(x, y, z, face) {
-            if ([x, y, z] in used) {
-                return false;
-            }
-            var v = self.voxels[[x, y, z]];
-            if (v == undefined) {
-                return false;
-            }
-            if (v.faces[face].external) {
-                return true;
-            }
-            return false;
-        }
+        var bounds = self.getBounds();
+        var height = bounds.max.y - bounds.min.y + 1;
+        var width = bounds.max.x - bounds.min.x + 1;
+        var depth = bounds.max.z - bounds.min.z + 1;
+        var ranges = [];
+        var rects = [];
 
         self.markExternalFaces();
 
-        var bounds = self.getBounds();
-        var ranges = [];
+        function genQuads(face, topLeft, di, dj, dk, ni, nj, nk) {
 
-        // front faces
-        used = {};
-        for (var zi = bounds.min.z; zi <= bounds.max.z; zi++) {
-            var xi = bounds.min.x;
-            var yi = bounds.min.y;
-            while (true) {
-                if (hasFace(xi, yi, zi, "front")) {
-                    var xstart = xi;
-                    var xend = xi;
-                    while (hasFace(xend + 1, yi, zi, "front")) {
-                        xend++;
-                    }
-                    var ystart = yi;
-                    var yend = yi;
-                    var done = false;
-                    while (!done) {
-                        for (var x = xstart; x <= xend; x++) {
-                            if (!hasFace(x, yend + 1, zi, "front")) {
-                                done = true;
-                                break;
+            var used = {};
+
+            function hasFace(p) {
+                if ([p.x, p.y, p.z] in used) return false;
+                var v = self.voxels[[p.x, p.y, p.z]];
+                if (v == undefined) return false;
+                if (v.faces[face].external) return true;
+                return false;
+            }
+
+            for (var k = 0; k < nk; k++) {
+                var kindex = topLeft.plus(dk.times(k));
+                for (var j = 0; j < nj; j++) {
+                    var jindex = kindex.plus(dj.times(j));
+                    for (var i = 0; i < ni; i++) {
+                        var iindex = jindex.plus(di.times(i));
+                        if (hasFace(iindex)) {
+                            var start = iindex.clone();
+                            var icount = 1;
+                            while (hasFace(start.plus(di.times(icount)))) {
+                                icount++;
+                            }
+                            var jcount = 1;
+                            var done = false;
+                            while (!done) {
+                                for (var l = 0; l < icount; l++) {
+                                    if (!hasFace(start.plus(dj.times(jcount)).plus(di.times(l)))) {
+                                        done = true;
+                                        break;
+                                    }
+                                }
+                                if (!done) {
+                                    jcount++;    
+                                }
+                            }
+                            ranges.push({
+                                start: start,
+                                di: di,
+                                dj: dj,
+                                ni: icount,
+                                nj: jcount,
+                                face: face
+                            });
+                            for (var ii = 0; ii < icount; ii++) {
+                                for (var jj = 0; jj < jcount; jj++) {
+                                    var u = start.plus(dj.times(jj)).plus(di.times(ii));
+                                    used[[u.x, u.y, u.z]] = true;
+                                }
                             }
                         }
-                        if (!done) {
-                            yend++;
-                        }
-                    }
-                    for (var x = xstart; x <= xend; x++) {
-                        for (var y = ystart; y <= yend; y++) {
-                            used[[x, y, zi]] = true;
-                        }
-                    }
-                    ranges.push([xstart, xend, ystart, yend, zi, "front"]);
-                }
-                xi++;
-                if (xi > bounds.max.x) {
-                    xi = 0;
-                    yi++;
-                    if (yi > bounds.max.y) {
-                        break;
                     }
                 }
             }
         }
 
-        // back faces
-        used = {};
-        for (var zi = bounds.min.z; zi <= bounds.max.z; zi++) {
-            var xi = bounds.min.x;
-            var yi = bounds.min.y;
-            while (true) {
-                if (hasFace(xi, yi, zi, "back")) {
-                    var xstart = xi;
-                    var xend = xi;
-                    while (hasFace(xend + 1, yi, zi, "back")) {
-                        xend++;
-                    }
-                    var ystart = yi;
-                    var yend = yi;
-                    var done = false;
-                    while (!done) {
-                        for (var x = xstart; x <= xend; x++) {
-                            if (!hasFace(x, yend + 1, zi, "back")) {
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (!done) {
-                            yend++;
-                        }
-                    }
-                    for (var x = xstart; x <= xend; x++) {
-                        for (var y = ystart; y <= yend; y++) {
-                            used[[x, y, zi]] = true;
-                        }
-                    }
-                    ranges.push([xstart, xend, ystart, yend, zi, "back"]);
-                }
-                xi++;
-                if (xi > bounds.max.x) {
-                    xi = 0;
-                    yi++;
-                    if (yi > bounds.max.y) {
-                        break;
-                    }
-                }
-            }
-        }
+        genQuads(
+            "front", 
+            new Vec3(bounds.max.x, bounds.max.y, bounds.min.z),
+            new Vec3(-1, 0, 0),
+            new Vec3(0, -1, 0),
+            new Vec3(0, 0, 1),
+            width,
+            height,
+            depth
+        );
 
-        // left faces
-        used = {};
-        for (var xi = bounds.min.x; xi <= bounds.max.x; xi++) {
-            var zi = bounds.min.z;
-            var yi = bounds.min.y;
-            while (true) {
-                if (hasFace(xi, yi, zi, "left")) {
-                    var zstart = zi;
-                    var zend = zi;
-                    while (hasFace(xi, yi, zend+1, "left")) {
-                        zend++;
-                    }
-                    var ystart = yi;
-                    var yend = yi;
-                    var done = false;
-                    while (!done) {
-                        for (var z = zstart; z <= zend; z++) {
-                            if (!hasFace(xi, yend + 1, z, "left")) {
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (!done) {
-                            yend++;
-                        }
-                    }
-                    for (var z = zstart; z <= zend; z++) {
-                        for (var y = ystart; y <= yend; y++) {
-                            used[[xi, y, z]] = true;
-                        }
-                    }
-                    ranges.push([zstart, zend, ystart, yend, xi, "left"]);
-                }
-                zi++;
-                if (zi > bounds.max.z) {
-                    zi = 0;
-                    yi++;
-                    if (yi > bounds.max.y) {
-                        break;
-                    }
-                }
-            }
-        }
+        genQuads(
+            "back", 
+            new Vec3(bounds.min.x, bounds.max.y, bounds.max.z),
+            new Vec3(1, 0, 0),
+            new Vec3(0, -1, 0),
+            new Vec3(0, 0, -1),
+            width,
+            height,
+            depth
+        );
 
-        // right faces
-        used = {};
-        for (var xi = bounds.min.x; xi <= bounds.max.x; xi++) {
-            var zi = bounds.min.z;
-            var yi = bounds.min.y;
-            while (true) {
-                if (hasFace(xi, yi, zi, "right")) {
-                    var zstart = zi;
-                    var zend = zi;
-                    while (hasFace(xi, yi, zend+1, "right")) {
-                        zend++;
-                    }
-                    var ystart = yi;
-                    var yend = yi;
-                    var done = false;
-                    while (!done) {
-                        for (var z = zstart; z <= zend; z++) {
-                            if (!hasFace(xi, yend + 1, z, "right")) {
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (!done) {
-                            yend++;
-                        }
-                    }
-                    for (var z = zstart; z <= zend; z++) {
-                        for (var y = ystart; y <= yend; y++) {
-                            used[[xi, y, z]] = true;
-                        }
-                    }
-                    ranges.push([zstart, zend, ystart, yend, xi, "right"]);
-                }
-                zi++;
-                if (zi > bounds.max.z) {
-                    zi = 0;
-                    yi++;
-                    if (yi > bounds.max.y) {
-                        break;
-                    }
-                }
-            }
-        }
+        genQuads(
+            "left", 
+            new Vec3(bounds.min.x, bounds.max.y, bounds.min.z),
+            new Vec3(0, 0, 1),
+            new Vec3(0, -1, 0),
+            new Vec3(1, 0, 0),
+            depth,
+            height,
+            width
+        );
 
-        // bottom faces
-        used = {};
-        for (var yi = bounds.min.y; yi <= bounds.max.y; yi++) {
-            var xi = bounds.min.x;
-            var zi = bounds.min.z;
-            while (true) {
-                if (hasFace(xi, yi, zi, "bottom")) {
-                    var xstart = xi;
-                    var xend = xi;
-                    while (hasFace(xend + 1, yi, zi, "bottom")) {
-                        xend++;
-                    }
-                    var zstart = zi;
-                    var zend = zi;
-                    var done = false;
-                    while (!done) {
-                        for (var x = xstart; x <= xend; x++) {
-                            if (!hasFace(x, yi, zend + 1, "bottom")) {
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (!done) {
-                            zend++;
-                        }
-                    }
-                    for (var x = xstart; x <= xend; x++) {
-                        for (var z = zstart; z <= zend; z++) {
-                            used[[x, yi, z]] = true;
-                        }
-                    }
-                    ranges.push([xstart, xend, zstart, zend, yi, "bottom"]);
-                }
-                xi++;
-                if (xi > bounds.max.x) {
-                    xi = 0;
-                    zi++;
-                    if (zi > bounds.max.z) {
-                        break;
-                    }
-                }
-            }
-        }
+        genQuads(
+            "right", 
+            new Vec3(bounds.max.x, bounds.max.y, bounds.max.z),
+            new Vec3(0, 0, -1),
+            new Vec3(0, -1, 0),
+            new Vec3(-1, 0, 0),
+            depth,
+            height,
+            width
+        );
 
-        // top faces
-        used = {};
-        for (var yi = bounds.min.y; yi <= bounds.max.y; yi++) {
-            var xi = bounds.min.x;
-            var zi = bounds.min.z;
-            while (true) {
-                if (hasFace(xi, yi, zi, "top")) {
-                    var xstart = xi;
-                    var xend = xi;
-                    while (hasFace(xend + 1, yi, zi, "top")) {
-                        xend++;
-                    }
-                    var zstart = zi;
-                    var zend = zi;
-                    var done = false;
-                    while (!done) {
-                        for (var x = xstart; x <= xend; x++) {
-                            if (!hasFace(x, yi, zend + 1, "top")) {
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (!done) {
-                            zend++;
-                        }
-                    }
-                    for (var x = xstart; x <= xend; x++) {
-                        for (var z = zstart; z <= zend; z++) {
-                            used[[x, yi, z]] = true;
-                        }
-                    }
-                    ranges.push([xstart, xend, zstart, zend, yi, "top"]);
-                }
-                xi++;
-                if (xi > bounds.max.x) {
-                    xi = 0;
-                    zi++;
-                    if (zi > bounds.max.z) {
-                        break;
-                    }
-                }
-            }
-        }
+        genQuads(
+            "top", 
+            new Vec3(bounds.min.x, bounds.max.y, bounds.min.z),
+            new Vec3(1, 0, 0),
+            new Vec3(0, 0, 1),
+            new Vec3(0, -1, 0),
+            width,
+            depth,
+            height
+        );
 
+        genQuads(
+            "bottom", 
+            new Vec3(bounds.max.x, bounds.min.y, bounds.min.z),
+            new Vec3(-1, 0, 0),
+            new Vec3(0, 0, 1),
+            new Vec3(0, 1, 0),
+            width,
+            depth,
+            height
+        );
 
-        var rects = [];
+        var normals = {
+            front: [0, 0, -1],
+            back: [0, 0, 1],
+            left: [-1, 0, 0],
+            right: [1, 0, 0],
+            top: [0, 1, 0],
+            bottom: [0, -1, 0]
+        };
+
+        var faceOffsets = {
+            front: new Vec3(1, 1, 0),
+            back: new Vec3(0, 1, 1),
+            left: new Vec3(0, 1, 0),
+            right: new Vec3(1, 1, 1),
+            top: new Vec3(0, 1, 0),
+            bottom: new Vec3(1, 0, 0)
+        };
 
         for (var i = 0; i < ranges.length; i++) {
             var range = ranges[i];
-
-            // front
-            if (range[5] == "front") {
-                var xmin = range[0];
-                var xmax = range[1];
-                var ymin = range[2];
-                var ymax = range[3];
-                var z = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = xmax - xmin + 1;
-                canvas.height = ymax - ymin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var x = xmin; x <= xmax; x++) {
-                    for (var y = ymin; y <= ymax; y++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = x - xmin;
-                        var cy = y - ymin;
-                        var aoFactor = 1 - v.faces.front.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
+            var canvas = document.createElement("canvas");
+            canvas.width = range.ni;
+            canvas.height = range.nj;
+            var ctx = canvas.getContext("2d");
+            for (var jj = 0; jj < range.nj; jj++) {
+                var jindex = range.start.plus(range.dj.times(jj));
+                for (var ii = 0; ii < range.ni; ii++) {
+                    var iindex = jindex.plus(range.di.times(ii));
+                    var v = self.voxels[[iindex.x, iindex.y, iindex.z]];
+                    var aoFactor = 1 - v.faces[range.face].ao;
+                    var r = Math.round(v.r * aoFactor * 255);
+                    var g = Math.round(v.g * aoFactor * 255);
+                    var b = Math.round(v.b * aoFactor * 255);
+                    ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
+                    ctx.fillRect(ii, jj, 1, 1);
                 }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [xmax + 1, ymin, z],
-                        [xmin, ymin, z],
-                        [xmin, ymax + 1, z],
-                        [xmax + 1, ymax + 1, z]
-                    ],
-                    normal: [0, 0, -1],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
             }
 
-            // back
-            if (range[5] == "back") {
-                var xmin = range[0];
-                var xmax = range[1];
-                var ymin = range[2];
-                var ymax = range[3];
-                var z = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = xmax - xmin + 1;
-                canvas.height = ymax - ymin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var x = xmin; x <= xmax; x++) {
-                    for (var y = ymin; y <= ymax; y++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = x - xmin;
-                        var cy = y - ymin;
-                        var aoFactor = 1 - v.faces.back.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
-                }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [xmin, ymin, z + 1],
-                        [xmax + 1, ymin, z + 1],
-                        [xmax + 1, ymax + 1, z + 1],
-                        [xmin, ymax + 1, z + 1]
-                    ],
-                    normal: [0, 0, 1],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
+            var p0 = range.start.plus(range.dj.times(range.nj)).plus(faceOffsets[range.face]);
+            var p1 = range.start.plus(range.di.times(range.ni)).plus(range.dj.times(range.nj)).plus(faceOffsets[range.face]);
+            var p2 = range.start.plus(range.di.times(range.ni)).plus(faceOffsets[range.face]);
+            var p3 = range.start.clone().plus(faceOffsets[range.face]);
+
+            var rect = {
+                canvas: canvas,
+                positions: [
+                    [p0.x, p0.y, p0.z],
+                    [p1.x, p1.y, p1.z],
+                    [p2.x, p2.y, p2.z],
+                    [p3.x, p3.y, p3.z]
+                ],
+                normal: normals[range.face],
+                face: range.face
             }
 
-            // left
-            if (range[5] == "left") {
-                var zmin = range[0];
-                var zmax = range[1];
-                var ymin = range[2];
-                var ymax = range[3];
-                var x = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = zmax - zmin + 1;
-                canvas.height = ymax - ymin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var z = zmin; z <= zmax; z++) {
-                    for (var y = ymin; y <= ymax; y++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = z - zmin;
-                        var cy = y - ymin;
-                        var aoFactor = 1 - v.faces.left.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
-                }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [x, ymin, zmin],
-                        [x, ymin, zmax + 1],
-                        [x, ymax + 1, zmax + 1],
-                        [x, ymax + 1, zmin]
-                    ],
-                    normal: [-1, 0, 0],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
-            }
-
-            // right
-            if (range[5] == "right") {
-                var zmin = range[0];
-                var zmax = range[1];
-                var ymin = range[2];
-                var ymax = range[3];
-                var x = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = zmax - zmin + 1;
-                canvas.height = ymax - ymin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var z = zmin; z <= zmax; z++) {
-                    for (var y = ymin; y <= ymax; y++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = z - zmin;
-                        var cy = y - ymin;
-                        var aoFactor = 1 - v.faces.right.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
-                }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [x + 1, ymin, zmax + 1],
-                        [x + 1, ymin, zmin],
-                        [x + 1, ymax + 1, zmin],
-                        [x + 1, ymax + 1, zmax + 1]
-                    ],
-                    normal: [1, 0, 0],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
-            }
-
-            // bottom
-            if (range[5] == "bottom") {
-                var xmin = range[0];
-                var xmax = range[1];
-                var zmin = range[2];
-                var zmax = range[3];
-                var y = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = xmax - xmin + 1;
-                canvas.height = zmax - zmin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var x = xmin; x <= xmax; x++) {
-                    for (var z = zmin; z <= zmax; z++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = x - xmin;
-                        var cy = z - zmin;
-                        var aoFactor = 1 - v.faces.bottom.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
-                }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [xmin, y, zmin],
-                        [xmax + 1, y, zmin],
-                        [xmax + 1, y, zmax + 1],
-                        [xmin, y, zmax + 1]
-                    ],
-                    normal: [0, -1, 0],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
-            }
-
-            // top
-            if (range[5] == "top") {
-                var xmin = range[0];
-                var xmax = range[1];
-                var zmin = range[2];
-                var zmax = range[3];
-                var y = range[4];
-                var canvas = document.createElement("canvas");
-                canvas.width = xmax - xmin + 1;
-                canvas.height = zmax - zmin + 1;
-                var ctx = canvas.getContext("2d");
-                for (var x = xmin; x <= xmax; x++) {
-                    for (var z = zmin; z <= zmax; z++) {
-                        var v = self.voxels[[x, y, z]];
-                        var cx = x - xmin;
-                        var cy = z - zmin;
-                        var aoFactor = 1 - v.faces.top.ao;
-                        var r = Math.round(v.r * aoFactor * 255);
-                        var g = Math.round(v.g * aoFactor * 255);
-                        var b = Math.round(v.b * aoFactor * 255);
-                        ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                        ctx.fillRect(cx, cy, 1, 1);
-                    }
-                }
-                var rect = {
-                    canvas: canvas,
-                    positions: [
-                        [xmin, y + 1, zmax + 1],
-                        [xmax + 1, y + 1, zmax + 1],
-                        [xmax + 1, y + 1, zmin],
-                        [xmin, y + 1, zmin]
-                    ],
-                    normal: [0, 1, 0],
-                    uvs: null,
-                    face: range[5]
-                }
-                rects.push(rect);
-            }
-
+            rects.push(rect);
 
         }
-
-        console.log(rects.length);
 
         var size = 1;
         var canvas = false;
@@ -1379,9 +1080,6 @@ var Chunk = function() {
         var uvs = [];
         for (var i = 0; i < rects.length; i++) {
             var r = rects[i];
-            // if (r.face != "back") {
-            //     continue;
-            // }
             positions.push.apply(positions, r.positions[0]);
             positions.push.apply(positions, r.positions[1]);
             positions.push.apply(positions, r.positions[2]);
@@ -1394,27 +1092,10 @@ var Chunk = function() {
             normals.push.apply(normals, r.normal);
             normals.push.apply(normals, r.normal);
             normals.push.apply(normals, r.normal);
-            var top = 1 - r.uvs[0]/canvas.height;
-            var left = r.uvs[1]/canvas.width;
-            var bottom = 1 - r.uvs[2]/ canvas.height;
-            var right = r.uvs[3]/canvas.width;
-            if (r.face == "back") {
-                top = bottom + (bottom = top, 0);
-            }
-            if (r.face == "front") {
-                top = bottom + (bottom = top, 0);
-                left = right + (right = left, 0);
-            }
-            if (r.face == "left") {
-                top = bottom + (bottom = top, 0);
-            }
-            if (r.face == "right") {
-                top = bottom + (bottom = top, 0);
-                left = right + (right = left, 0);
-            }
-            if (r.face == "bottom") {
-                top = bottom + (bottom = top, 0);
-            }
+            var top = 1 - r.uvs[0] / canvas.height;
+            var left = r.uvs[1] / canvas.width;
+            var bottom = 1 - r.uvs[2] / canvas.height;
+            var right = r.uvs[3] / canvas.width;
             uvs.push.apply(uvs, [left, bottom]);
             uvs.push.apply(uvs, [right, bottom]);
             uvs.push.apply(uvs, [right, top]);
@@ -1428,18 +1109,8 @@ var Chunk = function() {
         g.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
         g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e38);
 
-        // self.geometry.addAttribute('position', new THREE.BufferAttribute(a3, 3));
-        // self.geometry.addAttribute('normal', new THREE.BufferAttribute(a3, 3));
-        // self.geometry.addAttribute('color', new THREE.BufferAttribute(a3, 3));
-        // self.geometry.addAttribute('uv', new THREE.BufferAttribute(a2, 2));
-        // self.geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e38);
-
-        document.body.appendChild(canvas);
-        canvas.style.border = "1px solid red";
-
         return new THREE.Mesh(g, m);
     }
-
 
     self.initialize();
 
@@ -1499,8 +1170,8 @@ var Node = function(left, top, right, bottom) {
                 self.children.left = new Node(self.left, self.top, self.left + width - 1, self.bottom);
                 self.children.right = new Node(self.left + width, self.top, self.right, self.bottom);
             } else {
-                self.children.left = new Node(self.left, self.top, self.right, self.top+height-1);
-                self.children.right = new Node(self.left, self.top+height, self.right, self.bottom);
+                self.children.left = new Node(self.left, self.top, self.right, self.top + height - 1);
+                self.children.right = new Node(self.left, self.top + height, self.right, self.bottom);
             }
 
             return self.children.left.insert(rect);
@@ -1520,7 +1191,7 @@ function buildAtlas(rects, width, height) {
 
 
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle="rgb(255,0,255)";
+    ctx.fillStyle = "rgb(255,0,255)";
     ctx.fillRect(0, 0, width, height);
 
     for (var i = 0; i < rects.length; i++) {

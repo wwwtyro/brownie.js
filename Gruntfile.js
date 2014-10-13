@@ -6,6 +6,7 @@ module.exports = function (grunt) {
 			brownie: {
 				src: [
 					"src/core.js",
+					"src/vec.js",
 					"src/chunk.js",
 					"src/aotexture.js",
 					"src/raycast.js",
