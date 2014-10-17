@@ -2,6 +2,17 @@
 
 var scene, mesh, frozenMesh, camera, renderer, dummy, trackball;
 
+var perfs = {};
+
+function perf(label) {
+    if (label in perfs) {
+        console.log(label, Math.round(performance.now() - perfs[label]), "ms");
+        delete perfs[label];
+        return;
+    }
+    perfs[label] = performance.now();
+}
+
 window.onload = function() {
 
     var renderCanvas = document.getElementById("render-canvas");
@@ -21,7 +32,7 @@ window.onload = function() {
     dummy = new THREE.Object3D();
     scene.add(dummy);
 
-    var width = 64;
+    var width = 16;
     var height = width * 2;
     var base_height = width/8;
 
@@ -33,6 +44,7 @@ window.onload = function() {
     var pn = new PerlinNoise("foo");
 
     var s = 0.5;
+    perf("Build column");
     for (var x = 0; x < width; x++) {
         for (var y = 0; y < height; y++) {
             for (var z = 0; z < width; z++) {
@@ -50,10 +62,13 @@ window.onload = function() {
             }
         }
     }
+    perf("Build column");
 
 
 
+    perf("Mesh");
     brownie.rebuild();
+    perf("Mesh");
 
     var m = new THREE.MeshBasicMaterial({
         color: 0xffffff,
@@ -67,12 +82,15 @@ window.onload = function() {
     mesh.position.z = -width / 2;
     dummy.add(mesh);
 
-    brownie.calculateAO(100, width, 1.0, function(pct) {
-        console.log(pct * 100);
-    });
+    perf("Calculate AO");
+    brownie.calculateAO(100, width, 1.0);
+    perf("Calculate AO");
+
+    perf("Smooth AO");
     for (var i = 0; i < 2; i++) {
         brownie.antialiasAO();
     }
+    perf("Smooth AO");
 
     frozenMesh = chewBrownie(brownie.freeze());
     frozenMesh.position.x += width / 2;
