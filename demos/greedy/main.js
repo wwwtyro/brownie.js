@@ -21,83 +21,37 @@ window.onload = function() {
     dummy = new THREE.Object3D();
     scene.add(dummy);
 
+    var width = 64;
+    var height = width * 2;
+    var base_height = width/8;
 
-
-    var size = 16;
-
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1000);
-    camera.position.set(0, 0, size*2.5);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, width * 2.5);
 
     var brownie = new Brownie();
 
-    // for (var x = 0; x < size; x++) {
-    //     for (var y = 0; y < size; y++) {
-    //         for (var z = 0; z < size; z++) {
-    //             brownie.set(x, y, z, 0, Math.random(), 1.0);
-    //         }
-    //     }
-    // }
+    var pn = new PerlinNoise("foo");
 
-    // brownie.set(0, 0, 0, 1, 0, 0);
-    // brownie.set(0, 1, 0, 0, 1, 0);
-    // brownie.set(1, 0, 0, 0, 0, 1);
-    // brownie.set(1, 1, 0, 1, 0, 0);
-    // brownie.set(3, 0, 0, 0, 0, 0);
-    // brownie.set(0, 3, 0, 0, 0, 0);
-    // brownie.set(3, 3, 0, 0, 0, 0);
-
-    // var count = 0;
-    // for (var i = 0; i < 1; i++) {
-    //     var x0 = Math.round(Math.random() * size);
-    //     var x1 = x0 + Math.round(Math.random() * size/4);
-    //     var y0 = Math.round(Math.random() * size);
-    //     var y1 = y0 + Math.round(Math.random() * size/4);
-    //     var r = Math.random() * 0.5 + 0.5;
-    //     var g = Math.random() * 0.5 + 0.5;
-    //     var b = Math.random() * 0.5 + 0.5;
-    //     for (var x = x0; x <= x1; x++) {
-    //         for (var y = y0; y <= y1; y++) {
-    //             if (!brownie.get(x, y, 0)) {
-    //                 count++;
-    //             }
-    //             brownie.set(x, y, 0, r, g, b);
-    //         }
-    //     }
-    // }
-
-    for (var i = 0; i < size * size * size*32; i++) {
-        var x = Math.round(Math.random() * size);
-        var y = Math.round(Math.random() * size);
-        var z = Math.round(Math.random() * size);
-        var r = Math.random() * 0.5 + 0.5;
-        var g = Math.random() * 0.5 + 0.5;
-        var b = Math.random() * 0.5 + 0.5;
-        brownie.set(x, y, z, r, g, b);
+    var s = 0.5;
+    for (var x = 0; x < width; x++) {
+        for (var y = 0; y < height; y++) {
+            for (var z = 0; z < width; z++) {
+                if (y >= base_height && y < height - base_height) {
+                    var dx = x - width/2 + 0.5;
+                    var dz = z - width/2 + 0.5;
+                    var d = Math.sqrt(dx*dx + dz*dz);
+                    if (d > width/4) {
+                        continue;
+                    }
+                }
+                var off = pn.noise(x * s, y*s, z * s) * 4;
+                var c = (0.5 + 0.5 * (Math.sin(x * s + off))) * 0.5 + 0.5;
+                brownie.set(x, y, z, c, c, c);
+            }
+        }
     }
 
-    brownie.chunk.calculateAO(100, size, 1.0);
-    // brownie.chunk.antialiasAO();
 
-    // brownie.set(0, 0, 0, 1, 0, 0);
-    // brownie.set(0, 1, 0, 1, 0, 0);
-    // brownie.set(1, 0, 0, 0, 1, 0);
-    // brownie.set(1, 1, 0, 0, 1, 0);
-    // brownie.set(1, 0, 1, 0, 0, 1);
-    // brownie.set(1, 1, 1, 0, 0, 1);
-    // brownie.set(0, 0, 1, 1, 1, 0);
-    // brownie.set(0, 1, 1, 1, 1, 0);
-    // brownie.set(1, 0, 0, 0, 0, 0);
-
-    // brownie.set(3, 0, 0, 0, 0, 0);
-    // brownie.set(3, 1, 0, 0, 0, 0);
-    // brownie.set(4, 0, 0, 0, 0, 0);
-
-    frozenMesh = brownie.chunk.freeze();
-    frozenMesh.position.x += size/2;
-    frozenMesh.position.y = -size/2;
-    frozenMesh.position.z = -size/2;
-    dummy.add(frozenMesh);
-    // assplode;
 
     brownie.rebuild();
 
@@ -108,20 +62,33 @@ window.onload = function() {
     });
 
     mesh = new THREE.Mesh(brownie.getGeometry(), m);
-    mesh.position.x = -size - size/2;
-    mesh.position.y = -size/2;
-    mesh.position.z = -size/2;
-
+    mesh.position.x = -width - width / 2;
+    mesh.position.y = -height / 2;
+    mesh.position.z = -width / 2;
     dummy.add(mesh);
 
-    console.log(mesh.geometry.attributes.position.array.length/9);
-    console.log(frozenMesh.geometry.attributes.position.array.length/9);
+    brownie.calculateAO(100, width, 1.0, function(pct) {
+        console.log(pct * 100);
+    });
+    for (var i = 0; i < 2; i++) {
+        brownie.antialiasAO();
+    }
+
+    frozenMesh = chewBrownie(brownie.freeze());
+    frozenMesh.position.x += width / 2;
+    frozenMesh.position.y = -height / 2;
+    frozenMesh.position.z = -width / 2;
+    dummy.add(frozenMesh);
+
+
+    console.log(mesh.geometry.attributes.position.array.length / 9);
+    console.log(frozenMesh.geometry.attributes.position.array.length / 9);
 
 
     var light = new THREE.PointLight({
         color: 0xffffff
     });
-    light.position.set(0, 0, size*2);
+    light.position.set(0, 0, width * 2);
     scene.add(light);
 
     animate();
@@ -134,7 +101,7 @@ function animate() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight, true);
 
-    var rot = trackball.getSmoothRotation();    
+    var rot = trackball.getSmoothRotation();
     dummy.rotation.setFromQuaternion(rot);
 
     renderer.render(scene, camera);
@@ -194,4 +161,3 @@ var Trackball = function(element) {
 
     self.initialize();
 }
-

@@ -528,6 +528,8 @@ var Chunk = function() {
         range = range === undefined ? 32 : range;
         depth = depth === undefined ? 1 : depth;
 
+        var rng = new RNG(Math.random());
+
         var rays = {
             top: [],
             bottom: [],
@@ -538,9 +540,9 @@ var Chunk = function() {
         };
         for (var i = 0; i < samples * 100; i++) {
             var ray = {
-                x: random.gauss(),
-                y: random.gauss(),
-                z: random.gauss()
+                x: rng.normal(),
+                y: rng.normal(),
+                z: rng.normal()
             };
             var d = Math.sqrt(ray.x * ray.x + ray.y * ray.y + ray.z * ray.z);
             ray.x /= d;
@@ -607,7 +609,7 @@ var Chunk = function() {
                 }
                 var nIntersections = 0;
                 for (var i = 0; i < samples; i++) {
-                    var ray = random.choice(rays[face]);
+                    var ray = rng.choice(rays[face]);
                     var e = eyes[face];
                     var eye = {
                         x: v.x + e[0],
@@ -774,7 +776,7 @@ var Chunk = function() {
                                     }
                                 }
                                 if (!done) {
-                                    jcount++;    
+                                    jcount++;
                                 }
                             }
                             ranges.push({
@@ -798,7 +800,7 @@ var Chunk = function() {
         }
 
         genQuads(
-            "front", 
+            "front",
             new Vec3(bounds.max.x, bounds.max.y, bounds.min.z),
             new Vec3(-1, 0, 0),
             new Vec3(0, -1, 0),
@@ -809,7 +811,7 @@ var Chunk = function() {
         );
 
         genQuads(
-            "back", 
+            "back",
             new Vec3(bounds.min.x, bounds.max.y, bounds.max.z),
             new Vec3(1, 0, 0),
             new Vec3(0, -1, 0),
@@ -820,7 +822,7 @@ var Chunk = function() {
         );
 
         genQuads(
-            "left", 
+            "left",
             new Vec3(bounds.min.x, bounds.max.y, bounds.min.z),
             new Vec3(0, 0, 1),
             new Vec3(0, -1, 0),
@@ -831,7 +833,7 @@ var Chunk = function() {
         );
 
         genQuads(
-            "right", 
+            "right",
             new Vec3(bounds.max.x, bounds.max.y, bounds.max.z),
             new Vec3(0, 0, -1),
             new Vec3(0, -1, 0),
@@ -842,7 +844,7 @@ var Chunk = function() {
         );
 
         genQuads(
-            "top", 
+            "top",
             new Vec3(bounds.min.x, bounds.max.y, bounds.min.z),
             new Vec3(1, 0, 0),
             new Vec3(0, 0, 1),
@@ -853,7 +855,7 @@ var Chunk = function() {
         );
 
         genQuads(
-            "bottom", 
+            "bottom",
             new Vec3(bounds.max.x, bounds.min.y, bounds.min.z),
             new Vec3(-1, 0, 0),
             new Vec3(0, 0, 1),
@@ -883,21 +885,17 @@ var Chunk = function() {
 
         for (var i = 0; i < ranges.length; i++) {
             var range = ranges[i];
-            var canvas = document.createElement("canvas");
-            canvas.width = range.ni;
-            canvas.height = range.nj;
-            var ctx = canvas.getContext("2d");
+            var canvas = new Canvas(range.ni, range.nj);
             for (var jj = 0; jj < range.nj; jj++) {
                 var jindex = range.start.plus(range.dj.times(jj));
                 for (var ii = 0; ii < range.ni; ii++) {
                     var iindex = jindex.plus(range.di.times(ii));
                     var v = self.voxels[[iindex.x, iindex.y, iindex.z]];
                     var aoFactor = 1 - v.faces[range.face].ao;
-                    var r = Math.round(v.r * aoFactor * 255);
-                    var g = Math.round(v.g * aoFactor * 255);
-                    var b = Math.round(v.b * aoFactor * 255);
-                    ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
-                    ctx.fillRect(ii, jj, 1, 1);
+                    var r = v.r * aoFactor;
+                    var g = v.g * aoFactor;
+                    var b = v.b * aoFactor;
+                    canvas.setFloat(ii, jj, r, g, b);
                 }
             }
 
@@ -922,6 +920,94 @@ var Chunk = function() {
 
         }
 
+        var AtlasNode = function(left, top, right, bottom) {
+            var self = this;
+
+            self.initialize = function() {
+                self.top = top;
+                self.left = left;
+                self.bottom = bottom;
+                self.right = right;
+                self.width = right - left + 1;
+                self.height = bottom - top + 1;
+                self.rect = null;
+                self.children = {
+                    left: null,
+                    right: null
+                };
+            }
+
+            self.insert = function(rect) {
+
+                if (self.children.left || self.children.right) {
+
+                    if (self.children.left.insert(rect)) {
+                        return true;
+                    } else {
+                        return self.children.right.insert(rect);
+                    }
+
+                } else {
+
+                    if (self.rect != null) {
+                        return false;
+                    }
+
+                    var width = rect.canvas.width;
+                    var height = rect.canvas.height;
+
+                    if (self.width < width || self.height < height) {
+                        return false;
+                    }
+
+                    // use this to shrink the uvs inside the rect a little bit to reduce artifacts
+                    // when anti-aliasing, e.g., off = 0.1
+                    var off = 0.0;
+
+                    if (self.width == width && self.height == height) {
+                        self.rect = rect;
+                        rect.uvs = [self.top + off, self.left + off, self.bottom + 1 - off, self.right + 1 - off];
+                        return true;
+                    }
+
+                    var dw = self.width - width;
+                    var dh = self.height - height;
+
+                    if (dw > dh) {
+                        self.children.left = new AtlasNode(self.left, self.top, self.left + width - 1, self.bottom);
+                        self.children.right = new AtlasNode(self.left + width, self.top, self.right, self.bottom);
+                    } else {
+                        self.children.left = new AtlasNode(self.left, self.top, self.right, self.top + height - 1);
+                        self.children.right = new AtlasNode(self.left, self.top + height, self.right, self.bottom);
+                    }
+
+                    return self.children.left.insert(rect);
+                }
+            }
+
+            self.initialize();
+        }
+
+        function buildAtlas(rects, width, height) {
+
+            var root = new AtlasNode(0, 0, width - 1, height - 1);
+
+            var canvas = new Canvas(width, height);
+
+            for (var i = 0; i < rects.length; i++) {
+                var rect = rects[i];
+                var inserted = root.insert(rect);
+                if (!inserted) {
+                    return false;
+                }
+                canvas.blit(rect.canvas, rect.uvs[1], rect.uvs[0]);
+            }
+
+            canvas.flipY();
+
+            return canvas;
+        }
+
         var size = 1;
         var canvas = false;
         while (!canvas) {
@@ -929,143 +1015,13 @@ var Chunk = function() {
             size *= 2;
         }
 
-        var texture = new THREE.Texture(canvas);
-        texture.magFilter = THREE.NearestFilter;
-        texture.minFilter = THREE.NearestFilter;
-        texture.needsUpdate = true;
-        var m = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            map: texture,
-        });
-
-        var g = new THREE.BufferGeometry();
-        var positions = [];
-        var normals = [];
-        var uvs = [];
-        for (var i = 0; i < rects.length; i++) {
-            var r = rects[i];
-            positions.push.apply(positions, r.positions[0]);
-            positions.push.apply(positions, r.positions[1]);
-            positions.push.apply(positions, r.positions[2]);
-            positions.push.apply(positions, r.positions[0]);
-            positions.push.apply(positions, r.positions[2]);
-            positions.push.apply(positions, r.positions[3]);
-            normals.push.apply(normals, r.normal);
-            normals.push.apply(normals, r.normal);
-            normals.push.apply(normals, r.normal);
-            normals.push.apply(normals, r.normal);
-            normals.push.apply(normals, r.normal);
-            normals.push.apply(normals, r.normal);
-            var top = 1 - r.uvs[0] / canvas.height;
-            var left = r.uvs[1] / canvas.width;
-            var bottom = 1 - r.uvs[2] / canvas.height;
-            var right = r.uvs[3] / canvas.width;
-            uvs.push.apply(uvs, [left, bottom]);
-            uvs.push.apply(uvs, [right, bottom]);
-            uvs.push.apply(uvs, [right, top]);
-            uvs.push.apply(uvs, [left, bottom]);
-            uvs.push.apply(uvs, [right, top]);
-            uvs.push.apply(uvs, [left, top]);
-        }
-
-        g.addAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-        g.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
-        g.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
-        g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e38);
-
-        return new THREE.Mesh(g, m);
-    }
-
-    self.initialize();
-
-}
-
-
-var Node = function(left, top, right, bottom) {
-    var self = this;
-
-    self.initialize = function() {
-        self.top = top;
-        self.left = left;
-        self.bottom = bottom;
-        self.right = right;
-        self.width = right - left + 1;
-        self.height = bottom - top + 1;
-        self.rect = null;
-        self.children = {
-            left: null,
-            right: null
+        return {
+            quads: rects,
+            canvas: canvas
         };
-    }
 
-    self.insert = function(rect) {
-
-        if (self.children.left || self.children.right) {
-
-            if (self.children.left.insert(rect)) {
-                return true;
-            } else {
-                return self.children.right.insert(rect);
-            }
-
-        } else {
-
-            if (self.rect != null) {
-                return false;
-            }
-
-            var width = rect.canvas.width;
-            var height = rect.canvas.height;
-
-            if (self.width < width || self.height < height) {
-                return false;
-            }
-
-            if (self.width == width && self.height == height) {
-                self.rect = rect;
-                rect.uvs = [self.top, self.left, self.bottom + 1, self.right + 1];
-                return true;
-            }
-
-            var dw = self.width - width;
-            var dh = self.height - height;
-
-            if (dw > dh) {
-                self.children.left = new Node(self.left, self.top, self.left + width - 1, self.bottom);
-                self.children.right = new Node(self.left + width, self.top, self.right, self.bottom);
-            } else {
-                self.children.left = new Node(self.left, self.top, self.right, self.top + height - 1);
-                self.children.right = new Node(self.left, self.top + height, self.right, self.bottom);
-            }
-
-            return self.children.left.insert(rect);
-        }
     }
 
     self.initialize();
-}
 
-function buildAtlas(rects, width, height) {
-
-    var root = new Node(0, 0, width - 1, height - 1);
-
-    var canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "rgb(255,0,255)";
-    ctx.fillRect(0, 0, width, height);
-
-    for (var i = 0; i < rects.length; i++) {
-        var rect = rects[i];
-        var inserted = root.insert(rect);
-        if (!inserted) {
-            return false;
-        }
-        ctx.drawImage(rect.canvas, rect.uvs[1], rect.uvs[0]);
-    }
-
-    return canvas;
 }

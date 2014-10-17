@@ -10,7 +10,9 @@ module.exports = function (grunt) {
 					"src/chunk.js",
 					"src/aotexture.js",
 					"src/raycast.js",
-					"src/random.js",
+					"src/canvas.js",
+					"lib/jszip.min.js",
+					"lib/rng.js",
 				],
 				dest: "build/brownie.js"
 			}
