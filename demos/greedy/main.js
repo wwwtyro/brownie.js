@@ -32,7 +32,7 @@ window.onload = function() {
     dummy = new THREE.Object3D();
     scene.add(dummy);
 
-    var width = 16;
+    var width = 32;
     var height = width * 2;
     var base_height = width/8;
 
@@ -57,7 +57,7 @@ window.onload = function() {
                     }
                 }
                 var off = pn.noise(x * s, y*s, z * s) * 4;
-                var c = (0.5 + 0.5 * (Math.sin(x * s + off))) * 0.5 + 0.5;
+                var c = 1;//(0.5 + 0.5 * (Math.sin(x * s + off))) * 0.5 + 0.5;
                 brownie.set(x, y, z, c, c, c);
             }
         }
@@ -83,7 +83,9 @@ window.onload = function() {
     dummy.add(mesh);
 
     perf("Calculate AO");
+    console.profile("AO");
     brownie.calculateAO(100, width, 1.0);
+    console.profileEnd();
     perf("Calculate AO");
 
     perf("Smooth AO");
